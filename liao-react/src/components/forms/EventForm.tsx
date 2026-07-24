@@ -3,6 +3,7 @@ import { apiService } from '../../services/api';
 import type { EventApi } from '../../models/Event';
 import type { Partner } from '../../models/Partner';
 import EventContentManager from './EventContentManager';
+import { isHtmlEmbed } from '../../utils/embed';
 
 interface EventFormProps {
     event?: EventApi | null;
@@ -514,22 +515,50 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
 
                     {/* Gallery */}
                     <div>
-                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Galeria (Fotos Extras - URLs)</label>
-                        <div className="flex gap-2 mb-2">
-                            <input
-                                type="url"
-                                className="input-field flex-1"
+                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                            Galeria (Fotos ou Embeds de Redes Sociais)
+                        </label>
+                        <p className="text-xs text-neutral-500 mb-2">
+                            Cole a URL de uma foto ou o código HTML de incorporação (&lt;iframe...&gt; ou Instagram embed).
+                        </p>
+                        <div className="flex gap-2 mb-3">
+                            <textarea
+                                rows={2}
+                                className="input-field flex-1 text-xs font-mono resize-y"
                                 value={newGalleryItem}
                                 onChange={(e) => setNewGalleryItem(e.target.value)}
-                                placeholder="URL da foto"
+                                placeholder="URL da foto (ex: https://...) ou HTML Embed (ex: <iframe...> ou <blockquote class='instagram-media'...>)"
                             />
-                            <button type="button" onClick={() => addItem('gallery', newGalleryItem, setNewGalleryItem)} className="px-4 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl font-bold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors">+</button>
+                            <button 
+                                type="button" 
+                                onClick={() => addItem('gallery', newGalleryItem, setNewGalleryItem)} 
+                                className="px-4 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl font-bold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors h-fit self-start"
+                            >
+                                + Adicionar
+                            </button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                             {formData.gallery.map((img, i) => (
-                                <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border">
-                                    <img src={img} alt="Gallery item" className="w-full h-full object-cover" />
-                                    <button type="button" onClick={() => removeItem('gallery', i)} className="absolute inset-0 bg-danger-500/80 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">×</button>
+                                <div key={i} className="relative group w-full h-20 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center p-1">
+                                    {isHtmlEmbed(img) ? (
+                                        <div className="flex flex-col items-center justify-center text-center p-1">
+                                            <svg className="w-5 h-5 text-primary-500 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                            </svg>
+                                            <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300">Embed HTML</span>
+                                            <span className="text-[9px] text-neutral-400 font-mono truncate w-24">{img.trim().substring(0, 20)}...</span>
+                                        </div>
+                                    ) : (
+                                        <img src={img} alt="Gallery item" className="w-full h-full object-cover rounded" />
+                                    )}
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeItem('gallery', i)} 
+                                        className="absolute inset-0 bg-danger-500/90 text-white font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm rounded"
+                                        title="Remover item"
+                                    >
+                                        Remover ×
+                                    </button>
                                 </div>
                             ))}
                         </div>
