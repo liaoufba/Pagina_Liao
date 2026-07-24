@@ -130,14 +130,6 @@ const Navbar: React.FC = () => {
                         })}
                     </div>
 
-                    {/* Partner Logos */}
-                    <div className="hidden md:flex ml-auto items-center space-x-4">
-                        <a href="https://computacao.ufba.br/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-                            <img src="/ic-logo.png" alt="Instituto de Computação - UFBA" className="h-10 object-contain" />
-                        </a>
-
-                    </div>
-
                     {/* Theme Toggle (Desktop) */}
                     {!isEventDetailsPage && (
                         <button
