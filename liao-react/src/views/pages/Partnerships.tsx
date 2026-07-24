@@ -44,7 +44,7 @@ const Partnerships: React.FC = () => {
             {(viewMode) => (
                 <div className="col-span-full">
                     {partners.length === 0 ? (
-                        <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl shadow-sm border dark:border-neutral-800 transition-colors">
+                        <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border dark:border-neutral-800 transition-colors">
                             <p className="text-neutral-500 dark:text-neutral-400 text-xl font-medium">
                                 Estamos em busca de novas parcerias para expandir horizontes!
                             </p>

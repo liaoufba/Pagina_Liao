@@ -14,6 +14,12 @@ export interface DynamicSection {
     content: string;
 }
 
+export interface EventStat {
+    id: string;
+    value: string;
+    label: string;
+}
+
 export interface EventContentState {
     presentation: FixedSection;
     objectives: FixedSection;
@@ -23,7 +29,10 @@ export interface EventContentState {
     finalConsiderations: FixedSection;
     dynamicSections: DynamicSection[];
     scheduleTable: ScheduleTableData;
+    stats?: EventStat[];
 }
+
+type FixedSectionKey = keyof Omit<EventContentState, 'dynamicSections' | 'scheduleTable' | 'stats'>;
 
 interface EventContentManagerProps {
     initialContent?: string;
@@ -43,12 +52,13 @@ const DEFAULT_STATE: EventContentState = {
         days: [],
         hours: [],
         data: {}
-    }
+    },
+    stats: []
 };
 
 // Section Keys mapped to human readable titles
-const FIXED_SECTIONS_MAP: Record<keyof Omit<EventContentState, 'dynamicSections' | 'scheduleTable'>, string> = {
-    presentation: 'Apresentação do Evento',
+const FIXED_SECTIONS_MAP: Record<FixedSectionKey, string> = {
+    presentation: 'Descrição Detalhada / Resumo do Evento',
     objectives: 'Objetivos',
     targetAudience: 'Público-alvo',
     structure: 'Estrutura Geral do Evento',
@@ -91,7 +101,7 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
         }
     }, [state, onChange]);
 
-    const handleFixedToggle = (key: keyof Omit<EventContentState, 'dynamicSections' | 'scheduleTable'>) => {
+    const handleFixedToggle = (key: FixedSectionKey) => {
         setState(prev => ({
             ...prev,
             [key]: {
@@ -101,7 +111,7 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
         }));
     };
 
-    const handleFixedContentChange = (key: keyof Omit<EventContentState, 'dynamicSections' | 'scheduleTable'>, content: string) => {
+    const handleFixedContentChange = (key: FixedSectionKey, content: string) => {
         setState(prev => ({
             ...prev,
             [key]: {
@@ -138,7 +148,10 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h4 className="text-md font-semibold text-neutral-800 dark:text-neutral-200">Painel de Conteúdo</h4>
+                <div>
+                    <h4 className="text-md font-semibold text-neutral-800 dark:text-neutral-200">Painel de Conteúdo</h4>
+                    <p className="text-xs text-neutral-500 mt-0.5">Suporta formatação Markdown (ex: **negrito**, *itálico*, - listas, [links](url))</p>
+                </div>
                 <button
                     type="button"
                     onClick={() => setIsModalOpen(true)}
@@ -157,7 +170,7 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
             />
 
             <div className="space-y-4">
-                {(Object.entries(FIXED_SECTIONS_MAP) as [keyof Omit<EventContentState, 'dynamicSections' | 'scheduleTable'>, string][]).map(([key, title]) => (
+                {(Object.entries(FIXED_SECTIONS_MAP) as [FixedSectionKey, string][]).map(([key, title]) => (
                     <div key={key} className="border dark:border-neutral-800 rounded-xl overflow-hidden transition-all duration-300">
                         <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50">
                             <label className="flex items-center gap-3 cursor-pointer select-none w-full">
@@ -172,9 +185,14 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
                         </div>
                         {state[key].enabled && (
                             <div className="p-4 border-t dark:border-neutral-800 bg-white dark:bg-neutral-900 animate-in slide-in-from-top-2">
+                                {key === 'presentation' && (
+                                    <p className="text-xs text-neutral-500 mb-2">
+                                        Escreva a visão geral do evento. Serve tanto para descrever detalhes do evento futuro quanto para resumir como ele foi (Markdown ativado).
+                                    </p>
+                                )}
                                 <textarea
                                     className="w-full min-h-[100px] p-3 rounded-lg border dark:border-neutral-700 bg-transparent text-neutral-900 dark:text-neutral-100 focus:ring-2 focus:ring-primary-500 outline-none resize-y"
-                                    placeholder={`Escreva o conteúdo para ${title}...`}
+                                    placeholder={`Escreva o conteúdo para ${title} (suporta Markdown)...`}
                                     value={state[key].content}
                                     onChange={(e) => handleFixedContentChange(key, e.target.value)}
                                 />
@@ -218,6 +236,78 @@ const EventContentManager: React.FC<EventContentManagerProps> = ({ initialConten
                     ))}
                 </div>
             )}
+
+            {/* Números & Métricas do Evento (Pós-Evento) */}
+            <div className="space-y-4 pt-6 border-t dark:border-neutral-800">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h5 className="font-bold text-neutral-800 dark:text-neutral-200">Números & Métricas do Evento (Pós-Evento)</h5>
+                        <p className="text-xs text-neutral-500">Exiba destaques numéricos para eventos concluídos (ex: "45+ Participantes", "12h de Código")</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const newStat: EventStat = { id: Date.now().toString(), value: '', label: '' };
+                            setState(prev => ({ ...prev, stats: [...(prev.stats || []), newStat] }));
+                        }}
+                        className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-lg text-xs font-bold transition-colors"
+                    >
+                        + Adicionar Número
+                    </button>
+                </div>
+
+                {state.stats && state.stats.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {state.stats.map((stat, idx) => (
+                            <div key={stat.id || idx} className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border dark:border-neutral-700/60 relative group">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setState(prev => ({
+                                            ...prev,
+                                            stats: (prev.stats || []).filter(s => s.id !== stat.id)
+                                        }));
+                                    }}
+                                    className="absolute top-2 right-2 text-neutral-400 hover:text-danger-500 transition-colors text-lg"
+                                    title="Remover Número"
+                                >
+                                    ×
+                                </button>
+                                <div className="space-y-2 pr-6">
+                                    <input
+                                        type="text"
+                                        placeholder="Valor (ex: 45+ ou R$ 10k)"
+                                        className="input-field text-xs font-bold w-full"
+                                        value={stat.value}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setState(prev => ({
+                                                ...prev,
+                                                stats: (prev.stats || []).map(s => s.id === stat.id ? { ...s, value: val } : s)
+                                            }));
+                                        }}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Rótulo (ex: Participantes ou Prêmios)"
+                                        className="input-field text-xs w-full"
+                                        value={stat.label}
+                                        onChange={(e) => {
+                                            const lbl = e.target.value;
+                                            setState(prev => ({
+                                                ...prev,
+                                                stats: (prev.stats || []).map(s => s.id === stat.id ? { ...s, label: lbl } : s)
+                                            }));
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-xs text-neutral-400 italic">Nenhum número cadastrado. Clique no botão acima para adicionar.</p>
+                )}
+            </div>
 
             {/* Modal para Adicionar Seção */}
             {isModalOpen && (

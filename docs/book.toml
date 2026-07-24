@@ -1,0 +1,12 @@
+[book]
+title = "LIAO Documentation"
+authors = ["LIAO Team"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/liaoufba/Pagina_Liao"
+edit-url-template = "https://github.com/liaoufba/Pagina_Liao/edit/main/docs/{path}"

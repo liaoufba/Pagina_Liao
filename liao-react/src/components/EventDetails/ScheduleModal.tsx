@@ -115,7 +115,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, schedule
                                     <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">{day.label}</h3>
                                     <button 
                                         onClick={() => handleAddToCalendar(day)}
-                                        className="text-[10px] p-2 bg-white/5 rounded-lg text-primary-400"
+                                        className="text-[10px] p-2 bg-white/5 rounded-lg"
+                                        style={{ color: primaryColor }}
                                     >
                                         Add Agenda
                                     </button>
@@ -126,7 +127,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, schedule
                                         if (!content) return null;
                                         return (
                                             <div key={hIdx} className="flex gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
-                                                <div className="font-mono text-xs text-primary-400 shrink-0 w-12 pt-1">
+                                                <div className="font-mono text-xs shrink-0 w-12 pt-1" style={{ color: primaryColor }}>
                                                     {hour}
                                                 </div>
                                                 <div className="text-sm font-medium text-neutral-200">

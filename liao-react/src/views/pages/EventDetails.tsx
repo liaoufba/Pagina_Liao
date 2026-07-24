@@ -12,6 +12,7 @@ import EventGallery from '../../components/EventDetails/EventGallery';
 import EventSpeakers from '../../components/EventDetails/EventSpeakers';
 import EventCTA from '../../components/EventDetails/EventCTA';
 import EventPartners from '../../components/EventDetails/EventPartners';
+import EventStats from '../../components/EventDetails/EventStats';
 import PublicFAQModal from '../../components/EventDetails/PublicFAQModal';
 import ScheduleModal from '../../components/EventDetails/ScheduleModal';
 import FadeInSection from '../../components/EventDetails/FadeInSection';
@@ -64,9 +65,21 @@ const EventDetails: React.FC = () => {
     const [isScheduleOpen, setIsScheduleOpen] = useState(false);
     const [isFAQOpen, setIsFAQOpen] = useState(false);
 
+    // Helper to strip markdown from hero description summary
+    const stripMarkdown = (text: string) => {
+        if (!text) return '';
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/_(.*?)_/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/#+\s?/g, '')
+            .trim();
+    };
+
     // Parsing structured description
     let parsedContent: EventContentState | null = null;
-    let descriptionText = event?.description || '';
+    let descriptionText = event?.description ? stripMarkdown(event.description) : '';
 
     if (event?.description) {
         const trimmedDescription = event.description.trim();
@@ -75,13 +88,17 @@ const EventDetails: React.FC = () => {
                 // Sanitize string if it contains raw newlines that haven't been escaped
                 const sanitized = trimmedDescription.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
                 parsedContent = JSON.parse(sanitized);
-                descriptionText = parsedContent?.presentation?.content || event.description;
+                descriptionText = parsedContent?.presentation?.content 
+                    ? stripMarkdown(parsedContent.presentation.content) 
+                    : stripMarkdown(event.description);
             } catch (e) {
                 console.warn("Detais: Failed to parse structured content", e);
                 // Fallback to raw if sanitize failed too
                 try {
                     parsedContent = JSON.parse(trimmedDescription);
-                    descriptionText = parsedContent?.presentation?.content || event.description;
+                    descriptionText = parsedContent?.presentation?.content 
+                        ? stripMarkdown(parsedContent.presentation.content) 
+                        : stripMarkdown(event.description);
                 } catch(e2) {}
             }
         }
@@ -167,6 +184,11 @@ const EventDetails: React.FC = () => {
         );
     }
 
+    const eventWithMaterials = {
+        ...event,
+        materials: event.materials ?? (parsedContent as any)?.materials
+    };
+
     const eventDate = new Date(event.date as string).toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: 'long',
@@ -224,10 +246,14 @@ const EventDetails: React.FC = () => {
                         <div 
                             className={`flex items-center justify-center rounded-2xl ${
                                 isPlus 
-                                    ? 'w-12 h-12 bg-neutral-200/50 dark:bg-primary-500/20 border border-neutral-300 dark:border-primary-500/30' 
-                                    : 'w-10 h-10 bg-neutral-100 dark:bg-primary-500/10 border border-neutral-200 dark:border-primary-500/20 shadow-inner'
+                                    ? 'w-12 h-12 bg-neutral-200/50 border border-neutral-300 shadow-sm' 
+                                    : 'w-10 h-10 bg-neutral-100 border border-neutral-200 shadow-inner'
                             }`}
-                            style={{ color: 'var(--event-primary)' }}
+                            style={{ 
+                                backgroundColor: isPlus ? 'rgb(var(--event-primary-rgb) / 0.15)' : 'rgb(var(--event-primary-rgb) / 0.1)',
+                                borderColor: isPlus ? 'rgb(var(--event-primary-rgb) / 0.3)' : 'rgb(var(--event-primary-rgb) / 0.2)',
+                                color: 'var(--event-primary)' 
+                            }}
                         >
                             <Sparkles size={isPlus ? 24 : 20} className={isPlus ? "animate-pulse" : ""} />
                         </div>
@@ -253,6 +279,8 @@ const EventDetails: React.FC = () => {
         );
     };
 
+    const isPast = event.date ? new Date(event.date as string) < new Date() : false;
+
     return (
         <div 
             className={`relative min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 overflow-x-hidden transition-colors duration-300 ${fontClass}`}
@@ -271,19 +299,37 @@ const EventDetails: React.FC = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('/bg-grid.svg')] opacity-[0.05] dark:opacity-[0.02]"></div>
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 md:py-20">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
                 <EventHero 
                     event={event} 
                     eventDate={eventDate} 
                     descriptionOverride={descriptionText}
                     hasSchedule={!!parsedContent?.scheduleTable?.enabled}
                     onOpenSchedule={() => setIsScheduleOpen(true)}
+                    isPast={isPast}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
                     {/* Main Content Column */}
                     <div className="lg:col-span-2 space-y-16 pb-24">
+                        {/* Highlights/Gallery & Stats prioritized for past events */}
+                        {isPast && parsedContent?.stats && parsedContent.stats.length > 0 && (
+                            <EventStats stats={parsedContent.stats} />
+                        )}
+
+                        {isPast && event.gallery && event.gallery.length > 0 && (
+                            <div className="pb-4">
+                                <EventGallery gallery={event.gallery} />
+                            </div>
+                        )}
+
                         <div className="space-y-4">
+                            {parsedContent?.presentation?.enabled && renderContentSection(
+                                isPast ? 'Sobre a Edição' : 'Sobre o Evento', 
+                                parsedContent.presentation.content, 
+                                false, 
+                                ''
+                            )}
                             {parsedContent?.objectives?.enabled && renderContentSection('Objetivos', parsedContent.objectives.content, false, '')}
                             {parsedContent?.targetAudience?.enabled && renderContentSection('Público-alvo', parsedContent.targetAudience.content, false, 'delay-150')}
                             {parsedContent?.structure?.enabled && renderContentSection('Estrutura Geral', parsedContent.structure.content, false, 'delay-300')}
@@ -291,7 +337,7 @@ const EventDetails: React.FC = () => {
 
                         {event.highlights && (
                             <div className="pt-8 border-t border-neutral-200 dark:border-white/5">
-                                <EventHighlights highlights={event.highlights} />
+                                <EventHighlights highlights={event.highlights} isPast={isPast} />
                             </div>
                         )}
                         
@@ -318,13 +364,13 @@ const EventDetails: React.FC = () => {
                         
                         {parsedContent?.finalConsiderations?.enabled && renderContentSection('Considerações Finais', parsedContent.finalConsiderations.content, false, '')}
 
-                        {event.gallery && <EventGallery gallery={event.gallery} />}
+                        {!isPast && event.gallery && <EventGallery gallery={event.gallery} />}
                     </div>
 
                     {/* Sidebar */}
                     <div className="space-y-8">
                         <EventSpeakers speakers={event.speakers} palette={palette} />
-                        <EventCTA event={event} />
+                        <EventCTA event={eventWithMaterials} />
                     </div>
                 </div>
 

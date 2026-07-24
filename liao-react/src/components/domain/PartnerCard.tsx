@@ -14,9 +14,9 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner, viewMode }) => {
 
     return (
         <div className={`
-            group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 
-            transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden
-            ${isList ? 'flex flex-row items-center p-6 gap-8 rounded-xl' : 'flex flex-col rounded-2xl'}
+            group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 
+            transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden rounded-2xl
+            ${isList ? 'flex flex-row items-center p-6 gap-8' : 'flex flex-col'}
             ${isCard ? 'h-full min-h-[280px]' : ''}
             ${isGrid ? 'h-full min-h-[220px]' : ''}
         `}>

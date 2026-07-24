@@ -9,7 +9,7 @@ const MiniMemberCard: React.FC<MiniMemberCardProps> = ({ member, onSelect }) => 
     return (
         <div
             onClick={() => onSelect(member)}
-            className="group flex items-center p-4 bg-white rounded-lg shadow hover:shadow-lg transition-all duration-300 cursor-pointer border border-neutral-100 hover:border-primary-100"
+            className="group flex items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer border border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
         >
             <div className="flex-shrink-0 relative">
                 {member.photo ? (

@@ -22,7 +22,7 @@ const PartnershipCTA: React.FC = () => {
 
     return (
         <FadeInSection delay="delay-500" className="pt-8">
-            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
                 <div className="relative z-10 max-w-2xl">
                     <h2 className="text-3xl md:text-4xl font-bold mb-4">
                         Torne-se um parceiro LIAO

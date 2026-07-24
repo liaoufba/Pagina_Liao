@@ -5,7 +5,14 @@ import MemberCard from '../../components/domain/MemberCard';
 import TutorCard from '../../components/domain/TutorCard';
 import MemberModal from '../../components/ui/MemberModal';
 import PageLayout from '../layouts/PageLayout';
+import FilterTabs from '../../components/ui/FilterTabs';
 import type { Tutor } from '../../models/Tutor';
+import { 
+    IoBriefcaseOutline as DirectorsIcon, 
+    IoPeopleOutline as MembersIcon, 
+    IoRibbonOutline as FoundersIcon, 
+    IoSchoolOutline as TutorsIcon 
+} from 'react-icons/io5';
 
 interface Member {
     id: number;
@@ -42,8 +49,7 @@ const Members: React.FC = () => {
         }
         return 'directors';
     });
-    const [selectedYear, setSelectedYear] = useState(2026);
-    const [roleFilter, setRoleFilter] = useState<'all' | 'directors'>('all'); // New Sub-filter
+    const [selectedYear, setSelectedYear] = useState<number | 'all'>(2026);
     const [mobileViewMode, setMobileViewMode] = useState<'carousel' | 'grid'>('carousel'); // Mobile View Toggle
     const [isPaused, setIsPaused] = useState(false); // Mobile Carousel Pause Toggle
 
@@ -101,24 +107,10 @@ const Members: React.FC = () => {
             return member.isFounder === true;
         }
         if (activeTab === 'members') {
-            const matchesYear = (member.year === selectedYear || (!member.year && selectedYear === 2025));
-            if (!matchesYear) return false;
-
-            if (roleFilter === 'directors') {
-                return member.role !== 'member';
-            }
-            return true;
+            return selectedYear === 'all' || (member.year === selectedYear || (!member.year && selectedYear === 2025));
         }
         return false;
     });
-
-    // Fallback: If filtering by "Apenas Diretores" inside "Membros" tab yields no results for the selected year,
-    // show currently active directors instead.
-    if (activeTab === 'members' && roleFilter === 'directors' && filteredMembers.length === 0) {
-        filteredMembers = members.filter(member =>
-            member.role !== 'member' && member.isActive !== false
-        );
-    }
 
     // Responsive Carousel Logic
     const [itemsPerView, setItemsPerView] = useState(3);
@@ -135,7 +127,7 @@ const Members: React.FC = () => {
     // Reset index when tab or filter changes
     useEffect(() => {
         setCurrentIndex(0);
-    }, [activeTab, selectedYear, roleFilter]);
+    }, [activeTab, selectedYear]);
 
     const getListLength = () => activeTab === 'tutors' ? tutors.length : filteredMembers.length;
 
@@ -195,51 +187,47 @@ const Members: React.FC = () => {
             title="Nossos Membros" 
             subtitle="Conheça as pessoas que fazem a LIAO acontecer"
         >
-            {/* Header and Tabs (Unchanged code omitted for brevity matching existing context) */}
-            <div className="flex flex-wrap justify-center mb-8 gap-3 sm:space-x-4">
-                {['directors', 'members', 'founders', 'tutors'].map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => handleTabChange(tab as any)}
-                        className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === tab
-                            ? 'bg-gradient-to-r from-black to-success-900 text-white shadow-lg scale-105'
-                            : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700'
-                            }`}
-                    >
-                        {tab === 'directors' 
-                            ? 'Diretoria Atual' 
-                            : tab === 'members' 
-                            ? 'Membros' 
-                            : tab === 'founders' 
-                            ? 'Fundadores' 
-                            : 'Tutores'}
-                    </button>
-                ))}
-            </div>
+            {/* Standardized Header Tabs */}
+            <FilterTabs
+                tabs={[
+                    { id: 'directors', label: 'Diretoria Atual', icon: <DirectorsIcon size={18} /> },
+                    { id: 'members', label: 'Membros', icon: <MembersIcon size={18} /> },
+                    { id: 'founders', label: 'Fundadores', icon: <FoundersIcon size={18} /> },
+                    { id: 'tutors', label: 'Tutores', icon: <TutorsIcon size={18} /> }
+                ]}
+                activeTab={activeTab}
+                onChange={handleTabChange}
+                className="mb-8"
+            />
 
-            {/* Sub-filters (Year/Role) re-inserted if matching previous code flow or simplified */}
+            {/* Sub-filter (Year Selector) */}
             {activeTab === 'members' && (
-                <div className="flex flex-col items-center mb-8">
-                    <div className="overflow-x-auto pb-4 w-full">
-                        <div className="flex justify-center space-x-4 min-w-max px-4">
-                            {availableYears.map(year => (
-                                <button
-                                    key={year}
-                                    onClick={() => setSelectedYear(year)}
-                                    className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 transition-all ${selectedYear === year
-                                        ? 'border-success-600 bg-success-50 text-success-700 shadow-md scale-110'
-                                        : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-400 dark:text-neutral-400 hover:border-neutral-300'
-                                        }`}
-                                >
-                                    <span className="text-xs font-semibold uppercase">Ano</span>
-                                    <span className="text-lg font-bold">{year}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex space-x-3 mt-4">
-                        <button onClick={() => setRoleFilter('all')} className={`px-4 py-1.5 rounded-full text-sm font-semibold border dark:border-neutral-600 ${roleFilter === 'all' ? 'bg-neutral-800 text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}>Todos</button>
-                        <button onClick={() => setRoleFilter('directors')} className={`px-4 py-1.5 rounded-full text-sm font-semibold border dark:border-neutral-600 ${roleFilter === 'directors' ? 'bg-neutral-800 text-white' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}>Apenas Diretores</button>
+                <div className="flex justify-center mb-8">
+                    <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 bg-neutral-100 dark:bg-neutral-800/80 rounded-xl border border-neutral-200/60 dark:border-neutral-700/50 shadow-xs">
+                        <button
+                            type="button"
+                            onClick={() => setSelectedYear('all')}
+                            className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${selectedYear === 'all'
+                                ? 'bg-white dark:bg-neutral-900 text-primary-600 dark:text-primary-400 font-semibold shadow-xs'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                                }`}
+                        >
+                            Todos os Anos
+                        </button>
+
+                        {availableYears.map(year => (
+                            <button
+                                key={year}
+                                type="button"
+                                onClick={() => setSelectedYear(year)}
+                                className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${selectedYear === year
+                                    ? 'bg-white dark:bg-neutral-900 text-primary-600 dark:text-primary-400 font-semibold shadow-xs'
+                                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                                    }`}
+                            >
+                                {year}
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
@@ -362,7 +350,7 @@ const Members: React.FC = () => {
                         </>
                     ) : (
                         /* Mobile Grid View (New) */
-                        <div className="grid grid-cols-2 xs:grid-cols-3 gap-3 px-2">
+                        <div className="grid grid-cols-2 xs:grid-cols-3 gap-2.5 px-1">
                             {activeTab === 'tutors' ? (
                                 tutors.length > 0 ? (
                                     tutors.map((tutor) => (
@@ -414,7 +402,7 @@ const Members: React.FC = () => {
                 </div>
             ) : (
                 /* Desktop Grid View */
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
                     {activeTab === 'tutors' ? (
                         tutors.length > 0 ? (
                             tutors.map((tutor) => (

@@ -38,12 +38,16 @@ const EventFAQ: React.FC<EventFAQProps> = ({ faqs, isEmbedded = false }) => {
                             className="w-full flex items-center justify-between py-6 text-left group focus:outline-none"
                             aria-expanded={isOpen}
                         >
-                            <span className={`text-lg md:text-xl font-medium transition-colors duration-300 ${isOpen ? 'text-primary-600' : 'text-neutral-800 dark:text-neutral-200 group-hover:text-primary-500'}`}>
+                            <span 
+                                className="text-lg md:text-xl font-medium transition-colors duration-300 text-neutral-800 dark:text-neutral-200"
+                                style={{ color: isOpen ? 'var(--event-primary)' : undefined }}
+                            >
                                 {faq.question}
                             </span>
                             <div className={`flex-shrink-0 ml-4 transition-transform duration-500 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
                                 <svg 
-                                    className={`w-6 h-6 ${isOpen ? 'text-primary-600' : 'text-neutral-400'}`} 
+                                    className="w-6 h-6 transition-colors" 
+                                    style={{ color: isOpen ? 'var(--event-primary)' : 'currentColor' }}
                                     fill="none" 
                                     viewBox="0 0 24 24" 
                                     stroke="currentColor"
@@ -79,7 +83,10 @@ const EventFAQ: React.FC<EventFAQProps> = ({ faqs, isEmbedded = false }) => {
                     <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
                         Dúvidas Frequentes
                     </h2>
-                    <div className="w-20 h-1.5 bg-primary-600 mx-auto rounded-full"></div>
+                    <div 
+                        className="w-20 h-1.5 mx-auto rounded-full"
+                        style={{ backgroundColor: 'var(--event-primary)' }}
+                    ></div>
                 </div>
                 {content}
             </div>

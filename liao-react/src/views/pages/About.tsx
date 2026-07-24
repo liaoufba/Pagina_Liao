@@ -1,11 +1,32 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { useSEO } from '../../hooks/useSEO';
 import Card from '../../components/ui/Card';
+import EventStats, { StatCard, type EventStat } from '../../components/EventDetails/EventStats';
+import FilterTabs from '../../components/ui/FilterTabs';
+import { 
+    IoStatsChartOutline as StatsIcon,
+    IoGridOutline as GridIcon,
+    IoCalendarOutline as CalendarIcon,
+    IoCodeSlashOutline as CodeIcon,
+    IoPeopleOutline as PeopleIcon,
+    IoBusinessOutline as HandshakeIcon,
+    IoSparklesOutline as SparklesIcon,
+    IoRibbonOutline as RibbonIcon,
+    IoBookOutline as BookIcon,
+    IoRocketOutline as RocketIcon,
+    IoCheckmarkDoneCircleOutline as CheckIcon,
+    IoTrendingUpOutline as TrendIcon,
+    IoSchoolOutline as SchoolIcon,
+    IoGlobeOutline as GlobeIcon
+} from 'react-icons/io5';
+
+type StatCategory = 'all' | 'extension' | 'research' | 'community' | 'partnerships';
 
 const About: React.FC = () => {
     useSEO({
-        title: 'Sobre a LIAO UFBA | História, Missão e Valores',
+        title: 'Sobre a LIAO UFBA | História, Missão e Números',
         description: 'Saiba quem somos. A LIAO UFBA promove o ensino, pesquisa e desenvolvimento prático em Inteligência Artificial e Otimização de Sistemas na Bahia.',
         ogImage: '/banner-new.jpg'
     });
@@ -14,7 +35,23 @@ const About: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    // Touch swipe states for mobile
+    // Interactive Stats & Live Counts state
+    const [activeTab, setActiveTab] = useState<StatCategory>('all');
+    const [liveData, setLiveData] = useState({
+        membersCount: 0,
+        tutorsCount: 0,
+        projectsCount: 0,
+        finishedEventsCount: 0,
+        upcomingEventsCount: 0,
+        articlesCount: 0,
+        totalLikes: 0,
+        partnersCount: 0,
+        totalSpeakers: 0,
+        totalAgendaItems: 0,
+        customEventStats: [] as EventStat[]
+    });
+
+    // Touch swipe states for mobile carousel
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const minSwipeDistance = 50;
@@ -34,27 +71,141 @@ const About: React.FC = () => {
     ];
 
     useEffect(() => {
-        const fetchImages = async () => {
+        const fetchInitialData = async () => {
             try {
+                // Fetch About Carousel Images
                 const res = await apiService.getConfig('about_carousel_images');
                 if (res.success && res.data) {
                     const parsed = JSON.parse(res.data);
                     if (Array.isArray(parsed) && parsed.length > 0) {
                         setImages(parsed);
-                        setLoading(false);
-                        return;
+                    } else {
+                        setImages(defaultImages);
                     }
+                } else {
+                    setImages(defaultImages);
                 }
             } catch (err) {
                 console.error('Error fetching about carousel images:', err);
+                setImages(defaultImages);
             }
-            setImages(defaultImages);
-            setLoading(false);
+
+            // Fetch Live Stats Data from Database APIs
+            try {
+                const [membersRes, projectsRes, eventsRes, articlesRes, partnersRes, tutorsRes] = await Promise.allSettled([
+                    apiService.getMembers(),
+                    apiService.getProjects(),
+                    apiService.getEvents(),
+                    apiService.getArticles(),
+                    apiService.getPartners(),
+                    apiService.getTutors(),
+                ]);
+
+                let membersCount = 0;
+                let tutorsCount = 0;
+                let projectsCount = 0;
+                let finishedEventsCount = 0;
+                let upcomingEventsCount = 0;
+                let articlesCount = 0;
+                let totalLikes = 0;
+                let partnersCount = 0;
+                let totalSpeakers = 0;
+                let totalAgendaItems = 0;
+                const customEventStats: EventStat[] = [];
+
+                if (membersRes.status === 'fulfilled' && (membersRes.value as any)?.data) {
+                    const data = (membersRes.value as any).data;
+                    if (Array.isArray(data)) membersCount = data.length;
+                }
+                if (tutorsRes.status === 'fulfilled' && (tutorsRes.value as any)?.data) {
+                    const data = (tutorsRes.value as any).data;
+                    if (Array.isArray(data)) tutorsCount = data.length;
+                }
+                if (projectsRes.status === 'fulfilled' && (projectsRes.value as any)?.data) {
+                    const data = (projectsRes.value as any).data;
+                    if (Array.isArray(data)) projectsCount = data.length;
+                }
+                if (partnersRes.status === 'fulfilled' && (partnersRes.value as any)?.data) {
+                    const data = (partnersRes.value as any).data;
+                    if (Array.isArray(data)) partnersCount = data.length;
+                }
+                if (articlesRes.status === 'fulfilled' && (articlesRes.value as any)?.data) {
+                    const data = (articlesRes.value as any).data;
+                    if (Array.isArray(data)) {
+                        articlesCount = data.length;
+                        totalLikes = data.reduce((acc: number, item: any) => acc + (item.likes || item.likeCount || 0), 0);
+                    }
+                }
+                if (eventsRes.status === 'fulfilled' && (eventsRes.value as any)?.data) {
+                    const data = (eventsRes.value as any).data;
+                    if (Array.isArray(data)) {
+                        const now = new Date();
+                        data.forEach((evt: any) => {
+                            const evtDate = new Date(evt.date);
+                            if (evtDate < now) {
+                                finishedEventsCount++;
+                            } else {
+                                upcomingEventsCount++;
+                            }
+
+                            if (Array.isArray(evt.speakers)) {
+                                totalSpeakers += evt.speakers.length;
+                            }
+                            if (Array.isArray(evt.agenda)) {
+                                totalAgendaItems += evt.agenda.length;
+                            }
+
+                            // Extract stats configured by admin inside finished events
+                            if (evt.description && typeof evt.description === 'string') {
+                                try {
+                                    const parsed = JSON.parse(evt.description);
+                                    if (Array.isArray(parsed?.stats)) {
+                                        parsed.stats.forEach((st: any) => {
+                                            if (st.value && st.label) {
+                                                customEventStats.push({
+                                                    id: `evt-stat-${evt.id}-${st.id || Math.random()}`,
+                                                    value: st.value,
+                                                    label: st.label,
+                                                    category: 'Extensão',
+                                                    description: `Métrica do evento "${evt.title}".`,
+                                                    change: 'Evento Concluído',
+                                                    icon: <RibbonIcon size={20} />
+                                                });
+                                            }
+                                        });
+                                    }
+                                } catch (e) {
+                                    // Ignore non-JSON descriptions
+                                }
+                            }
+                        });
+                    }
+                }
+
+                setLiveData({
+                    membersCount,
+                    tutorsCount,
+                    projectsCount,
+                    finishedEventsCount,
+                    upcomingEventsCount,
+                    articlesCount,
+                    totalLikes,
+                    partnersCount,
+                    totalSpeakers,
+                    totalAgendaItems,
+                    customEventStats
+                });
+            } catch (err) {
+                console.error("Error loading live stats from database:", err);
+            } finally {
+                setLoading(false);
+            }
         };
-        fetchImages();
+
+        fetchInitialData();
     }, []);
 
-    // Automatic slide advance
+    // Automatic slide advance for carousel
     useEffect(() => {
         if (images.length <= 1) return;
         const interval = setInterval(() => {
@@ -98,6 +249,154 @@ const About: React.FC = () => {
         }
     };
 
+    // Dynamically constructed Stats items based exclusively on real database data
+    const allStats: (EventStat & { categoryKey: StatCategory })[] = [
+        {
+            id: 'stat-membros',
+            value: `${liveData.membersCount}`,
+            label: 'Membros Ativos & Pesquisadores',
+            description: 'Cadastros ativos na base de dados do laboratório.',
+            change: 'Membros DB',
+            category: 'Comunidade',
+            categoryKey: 'community',
+            icon: <PeopleIcon size={20} />
+        },
+        {
+            id: 'stat-tutas',
+            value: `${liveData.tutorsCount}`,
+            label: 'Docentes & Tutores Cadastrados',
+            description: 'Professores orientadores cadastrados no sistema.',
+            change: 'Tutores DB',
+            category: 'Comunidade',
+            categoryKey: 'community',
+            icon: <SchoolIcon size={20} />
+        },
+        {
+            id: 'stat-projetos',
+            value: `${liveData.projectsCount}`,
+            label: 'Projetos Tecnológicos Cadastrados',
+            description: 'Projetos registrados na base de dados da liga.',
+            change: 'Projetos DB',
+            category: 'Pesquisa',
+            categoryKey: 'research',
+            icon: <CodeIcon size={20} />
+        },
+        {
+            id: 'stat-eventos-realizados',
+            value: `${liveData.finishedEventsCount}`,
+            label: 'Eventos Concluídos',
+            description: 'Eventos já realizados e armazenados no histórico.',
+            change: 'Histórico DB',
+            category: 'Extensão',
+            categoryKey: 'extension',
+            icon: <CheckIcon size={20} />
+        },
+        {
+            id: 'stat-eventos-agendados',
+            value: `${liveData.upcomingEventsCount}`,
+            label: 'Próximos Eventos Agendados',
+            description: 'Eventos cadastrados com data futura.',
+            change: 'Agenda DB',
+            category: 'Extensão',
+            categoryKey: 'extension',
+            icon: <CalendarIcon size={20} />
+        },
+        {
+            id: 'stat-palestrantes',
+            value: `${liveData.totalSpeakers}`,
+            label: 'Palestrantes Cadastrados em Eventos',
+            description: 'Palestrantes e convidados registrados na grade dos eventos.',
+            change: 'Eventos DB',
+            category: 'Extensão',
+            categoryKey: 'extension',
+            icon: <GlobeIcon size={20} />
+        },
+        {
+            id: 'stat-agenda',
+            value: `${liveData.totalAgendaItems}`,
+            label: 'Sessões & Palestras de Programação',
+            description: 'Atividades programadas cadastradas nos eventos.',
+            change: 'Programação DB',
+            category: 'Extensão',
+            categoryKey: 'extension',
+            icon: <RocketIcon size={20} />
+        },
+        {
+            id: 'stat-artigos',
+            value: `${liveData.articlesCount}`,
+            label: 'Artigos Publicados na Newsletter',
+            description: 'Artigos registrados no módulo da newsletter.',
+            change: 'Newsletter DB',
+            category: 'Pesquisa',
+            categoryKey: 'research',
+            icon: <BookIcon size={20} />
+        },
+        {
+            id: 'stat-curtidas',
+            value: `${liveData.totalLikes}`,
+            label: 'Curtidas Totais na Newsletter',
+            description: 'Reações e curtidas recebidas pelos leitores nos artigos.',
+            change: 'Engajamento DB',
+            category: 'Pesquisa',
+            categoryKey: 'research',
+            icon: <TrendIcon size={20} />
+        },
+        {
+            id: 'stat-parceiros',
+            value: `${liveData.partnersCount}`,
+            label: 'Empresas & Parceiros Cadastrados',
+            description: 'Organizações e parceiros registrados no sistema.',
+            change: 'Parceiros DB',
+            category: 'Parcerias',
+            categoryKey: 'partnerships',
+            icon: <HandshakeIcon size={20} />
+        },
+        ...liveData.customEventStats.map(st => ({
+            ...st,
+            categoryKey: 'extension' as StatCategory
+        }))
+    ];
+
+    const filteredStats = activeTab === 'all' 
+        ? allStats 
+        : allStats.filter(s => s.categoryKey === activeTab);
+
+    // Top 4 Primary Highlight Stats dynamically generated from DB
+    const highlightStats: EventStat[] = [
+        {
+            id: 'h1',
+            value: `${liveData.membersCount}`,
+            label: 'Membros Ativos',
+            description: 'Cadastrados no banco de dados da UFBA',
+            change: 'Comunidade',
+            icon: <PeopleIcon size={22} />
+        },
+        {
+            id: 'h2',
+            value: `${liveData.projectsCount}`,
+            label: 'Projetos no Sistema',
+            description: 'Projetos de pesquisa e extensão',
+            change: 'Projetos',
+            icon: <CodeIcon size={22} />
+        },
+        {
+            id: 'h3',
+            value: `${liveData.finishedEventsCount + liveData.upcomingEventsCount}`,
+            label: 'Total de Eventos',
+            description: 'Eventos realizados e agendados',
+            change: 'Extensão',
+            icon: <CalendarIcon size={22} />
+        },
+        {
+            id: 'h4',
+            value: `${liveData.articlesCount}`,
+            label: 'Artigos Publicados',
+            description: 'Publicações na newsletter oficial',
+            change: 'Publicações',
+            icon: <BookIcon size={22} />
+        }
+    ];
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen section-bg-main text-neutral-900 dark:text-white">
@@ -107,7 +406,7 @@ const About: React.FC = () => {
     }
 
     return (
-        <div className="about-page-wrapper section-bg-main text-neutral-900 dark:text-white min-h-screen pt-28 pb-16 sm:pt-32 sm:pb-24 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center w-full relative overflow-hidden">
+        <div className="about-page-wrapper section-bg-main text-neutral-900 dark:text-white min-h-screen page-padding-y px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center w-full relative overflow-hidden">
             
             {/* Styles Injection */}
             <style dangerouslySetInnerHTML={{ __html: `
@@ -168,15 +467,17 @@ const About: React.FC = () => {
             {/* Header / Logo */}
             <header className="text-center w-full max-w-7xl mx-auto mb-12 sm:mb-20 fade-in-up">
                 <div className="flex justify-center mb-6 sm:mb-8">
-                     <img src="/logo.png" alt="LIAO Logo" className="h-16 sm:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]" />
+                     <img src="/logo.png" alt="LIAO Logo" className="h-16 sm:h-20 object-contain dark:hidden transition-all duration-300" />
+                     <img src="/logo-dark.png" alt="LIAO Logo" className="h-16 sm:h-20 object-contain hidden dark:block transition-all duration-300" />
                 </div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight text-white">Sobre a LIAO UFBA</h1>
-                <p className="text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight text-neutral-900 dark:text-white">Sobre a LIAO UFBA</h1>
+                <p className="text-neutral-600 dark:text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
                     Conheça a Liga Acadêmica de Inteligência Artificial e Otimização da UFBA
                 </p>
             </header>
 
-            <main className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center mb-20 sm:mb-32 relative">
+            {/* MISSION AND CAROUSEL SECTION */}
+            <main className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center mb-20 sm:mb-28 relative">
                 
                 {/* Decorative Background Glow */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-3xl bg-gradient-to-r from-liao-blue/10 via-transparent to-liao-red/10 blur-[100px] rounded-full z-0 pointer-events-none"></div>
@@ -273,7 +574,8 @@ const About: React.FC = () => {
                 </section>
             </main>
 
-            <section className="w-full max-w-7xl mx-auto fade-in-up delay-300">
+            {/* VALUES SECTION */}
+            <section className="w-full max-w-7xl mx-auto fade-in-up delay-300 mb-24">
                 <div className="text-center mb-12 sm:mb-16 relative">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold inline-block relative pb-4 text-neutral-900 dark:text-white">
                         Nossos Valores
@@ -321,7 +623,7 @@ const About: React.FC = () => {
                         </div>
                         <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-neutral-900 dark:text-white group-hover:text-liao-blue transition-colors duration-300">Inovação</h3>
                         <p className="text-neutral-600 dark:text-neutral-400 text-xs sm:text-sm leading-relaxed">
-                            Exploramos novas ideias and tecnologias, pensando fora da caixa para criar soluções impactantes.
+                            Exploramos novas ideias e tecnologias, pensando fora da caixa para criar soluções impactantes.
                         </p>
                     </Card>
 
@@ -339,6 +641,110 @@ const About: React.FC = () => {
 
                 </div>
             </section>
+
+            {/* BRAND NEW SECTION: LIAO EM NÚMEROS */}
+            <section id="numeros" className="w-full max-w-7xl mx-auto fade-in-up delay-400 space-y-16 pt-8 pb-16">
+                
+                {/* Section Header */}
+                <div className="text-center relative">
+                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest px-4 py-1.5 rounded-full bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-900/60 inline-block mb-3">
+                        Transparência & Impacto
+                    </span>
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
+                        LIAO em Números
+                    </h2>
+                    <p className="text-neutral-600 dark:text-neutral-400 text-base sm:text-lg max-w-2xl mx-auto mt-3 font-light leading-relaxed">
+                        Os dados e métricas reais que traduzem a energia, a produção científica e o impacto da nossa liga acadêmica na UFBA.
+                    </p>
+                </div>
+
+                {/* HERO STATS BANNER - Reusing the EventStats container style */}
+                <EventStats 
+                    stats={highlightStats}
+                    title="Principais Indicadores do Laboratório"
+                    subtitle="Métricas sincronizadas em tempo real com os sistemas da LIAO UFBA"
+                    icon={<StatsIcon size={22} />}
+                    columns={4}
+                    className="mt-2"
+                />
+
+                {/* FILTERABLE MODULAR STAT CARDS SECTION */}
+                <div className="space-y-8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div>
+                            <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
+                                Painel Completo de Métricas
+                            </span>
+                            <h3 className="text-3xl font-extrabold text-neutral-900 dark:text-white mt-1">
+                                Explore Nossas Estatísticas por Categoria
+                            </h3>
+                            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                                Selecione uma aba abaixo para filtrar as métricas do laboratório.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Standardized Filter Tabs Component */}
+                    <FilterTabs
+                        tabs={[
+                            { id: 'all', label: 'Todos os Indicadores', icon: <GridIcon size={18} />, count: allStats.length },
+                            { id: 'extension', label: 'Extensão & Eventos', icon: <CalendarIcon size={18} />, count: allStats.filter(s => s.categoryKey === 'extension').length },
+                            { id: 'research', label: 'Pesquisa & Projetos', icon: <CodeIcon size={18} />, count: allStats.filter(s => s.categoryKey === 'research').length },
+                            { id: 'community', label: 'Comunidade & Talentos', icon: <PeopleIcon size={18} />, count: allStats.filter(s => s.categoryKey === 'community').length },
+                            { id: 'partnerships', label: 'Parcerias & Ecossistema', icon: <HandshakeIcon size={18} />, count: allStats.filter(s => s.categoryKey === 'partnerships').length }
+                        ]}
+                        activeTab={activeTab}
+                        onChange={(tabId) => setActiveTab(tabId as StatCategory)}
+                        className="mb-8"
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredStats.map(stat => (
+                            <StatCard key={stat.id} stat={stat} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* CTA BANNER */}
+                <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-r from-primary-900 via-primary-800 to-indigo-900 text-white relative overflow-hidden shadow-xl">
+                    <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-x-12 translate-y-12">
+                        <RocketIcon size={320} />
+                    </div>
+
+                    <div className="relative z-10 max-w-2xl space-y-4">
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 text-white text-xs font-semibold backdrop-blur-md">
+                            <SparklesIcon size={14} className="text-amber-400" />
+                            Faça parte da nossa história
+                        </span>
+
+                        <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                            Quer ajudar a expandir estes números?
+                        </h3>
+
+                        <p className="text-neutral-200 text-sm md:text-base leading-relaxed">
+                            Seja ingressando como membro pesquisador através do nosso Processo Seletivo ou firmando uma parceria institucional com sua empresa.
+                        </p>
+
+                        <div className="flex flex-wrap gap-4 pt-4">
+                            <Link 
+                                to="/prosel"
+                                className="px-6 py-3 rounded-xl bg-white text-primary-900 font-bold hover:bg-neutral-100 transition-colors shadow-lg hover:shadow-xl text-sm flex items-center gap-2"
+                            >
+                                Processo Seletivo
+                                <RocketIcon size={16} />
+                            </Link>
+                            <Link 
+                                to="/partnerships"
+                                className="px-6 py-3 rounded-xl bg-white/10 text-white border border-white/20 font-bold hover:bg-white/20 transition-colors text-sm flex items-center gap-2"
+                            >
+                                Seja um Parceiro
+                                <HandshakeIcon size={16} />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </div>
     );
 };

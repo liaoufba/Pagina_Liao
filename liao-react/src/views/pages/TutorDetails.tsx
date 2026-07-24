@@ -54,7 +54,7 @@ const TutorDetails: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 pb-20">
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 page-padding-bottom">
             {/* Hero Header with Gradient */}
             <div className="bg-gradient-to-r from-primary-900 to-primary-800 text-white shadow-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative overflow-hidden">

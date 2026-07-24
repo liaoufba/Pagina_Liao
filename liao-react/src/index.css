@@ -14,6 +14,16 @@ body {
   @apply bg-neutral-50 text-neutral-900 font-sans dark:bg-neutral-900 dark:text-neutral-100 transition-colors duration-200;
 }
 
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 @layer components {
   /* Semantic Backgrounds for Modular Sections */
   .section-bg-main {
@@ -33,24 +43,32 @@ body {
   }
 
   .btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-black to-success-900 text-white rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg;
-  }
-
-  .btn-premium {
-    @apply px-6 py-3 text-neutral-950 rounded-lg font-bold hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg relative overflow-hidden;
-    background-image: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728);
+    @apply px-6 py-3 bg-liao-blue hover:bg-primary-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-md shadow-primary-600/20 active:scale-95 cursor-pointer;
   }
 
   .btn-secondary {
-    @apply px-6 py-3 bg-neutral-200 text-neutral-800 rounded-lg font-medium hover:bg-neutral-300 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200;
+    @apply px-6 py-3 bg-liao-green hover:bg-success-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer;
+  }
+
+  .btn-special {
+    @apply px-6 py-3 bg-gradient-to-r from-liao-red via-red-500 to-liao-yellow text-white rounded-xl font-bold hover:scale-[1.03] active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 cursor-pointer;
+  }
+
+  .btn-premium {
+    @apply px-6 py-3 text-neutral-950 rounded-xl font-bold hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg relative overflow-hidden cursor-pointer;
+    background-image: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728);
   }
 
   .card {
-    @apply bg-white dark:bg-neutral-800 rounded-xl shadow-md hover:shadow-xl dark:shadow-neutral-900/50 transition-all duration-300 overflow-hidden;
+    @apply bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-md hover:shadow-xl dark:shadow-neutral-900/50 transition-all duration-300 overflow-hidden;
+  }
+
+  .border-card {
+    @apply border border-neutral-200 dark:border-neutral-700 rounded-2xl;
   }
 
   .card-premium {
-    @apply bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden relative border border-transparent;
+    @apply bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden relative border border-transparent;
     background-image: linear-gradient(white, white), linear-gradient(135deg, #bf953f66, #fcf6ba66, #b3872866);
     background-origin: border-box;
     background-clip: padding-box, border-box;
@@ -71,6 +89,19 @@ body {
 
   .gradient-bg {
     @apply bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700;
+  }
+
+  /* Standardized Page Spacing Tokens */
+  .page-padding-top {
+    @apply pt-20 sm:pt-24;
+  }
+
+  .page-padding-bottom {
+    @apply pb-16 sm:pb-20;
+  }
+
+  .page-padding-y {
+    @apply pt-20 pb-16 sm:pt-24 sm:pb-20;
   }
 }
 
@@ -127,6 +158,27 @@ body {
 
 .animate-tech-bg {
   animation: techBgFadeIn 400ms ease-out forwards;
+}
+
+@keyframes techScanline {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-tech-scanline {
+  animation: techScanline 7s ease-in-out infinite;
 }
 
 /* Hide scrollbars for sliders */

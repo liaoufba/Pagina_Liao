@@ -13,6 +13,7 @@ import Admin from './views/pages/Admin';
 import Events from './views/pages/Events';
 import EventDetails from './views/pages/EventDetails';
 import ProtectedRoute from './components/ui/ProtectedRoute';
+import ScrollToTop from './components/layout/ScrollToTop';
 
 import About from './views/pages/About';
 import Partnerships from './views/pages/Partnerships';
@@ -20,6 +21,7 @@ import Partnerships from './views/pages/Partnerships';
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
@@ -35,9 +37,16 @@ function App() {
           <Route path="about" element={<About />} />
           <Route path="events" element={<Events />} />
           <Route path="events/:slug" element={<EventDetails />} />
+          <Route path="numeros" element={<Navigate to="/about" replace />} />
+          <Route path="liao-em-numeros" element={<Navigate to="/about" replace />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/:section" element={
           <ProtectedRoute>
             <Admin />
           </ProtectedRoute>

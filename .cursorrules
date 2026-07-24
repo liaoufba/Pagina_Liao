@@ -2,21 +2,26 @@
 
 This file describes the guidelines to ensure design consistency, avoid boilerplate, and maximize the reuse of components and global configurations in this repository.
 
-## 1. Design & Theme Guidelines
-* **Semantic Colors**: Never hardcode hexadecimal or arbitrary colors in Tailwind classes (e.g., `bg-[#141414]`). Use the colors and extended shades in the `tailwind.config.js` configuration file (such as `primary`, `neutral`, `success`, `warning`, `danger`, `liao-bg`, `liao-card`).
-* **Theme-Responsive Design (Light/Dark Mode)**: Ensure all screens and components seamlessly support Light Mode and Dark Mode using appropriate semantic Tailwind classes or the `dark:` modifier.
-* **Global and Utility Classes**: Reference and use global styling classes (such as `.card`, `.section-bg-main`, `.section-bg-alt`, `.btn-premium`) declared in `src/index.css` instead of replicating the same set of ad-hoc classes.
+## Database Security
+Whenever the user asks for database changing and DB_ENV is set to prod in liao-backend/.env, ask the user if they're sure about that action.
 
-## 2. Component Reuse
+## Design & Theme Guidelines
+* **Mandatory Design Rules Inspection**: Before making ANY frontend, UI, styling, layout, or component changes, AI Agents and LLMs MUST inspect and adhere to the authoritative design rules in `docs/src/design-rules/`:
+  - [`docs/src/design-rules/color-system.md`](docs/src/design-rules/color-system.md): Brand color system, button hierarchy specifications, and mandatory color usage rules.
+  - [`docs/src/design-rules/border-system.md`](docs/src/design-rules/border-system.md): Border tokens, card border radius standardization (`rounded-2xl`), and card container constraints.
+* **Semantic Tokens**: Never hardcode hexadecimal or arbitrary styling values in Tailwind classes (e.g., `bg-[#141414]`). Use the semantic tokens defined in `tailwind.config.js` and global utility classes (`.card`, `.btn-primary`, `.btn-secondary`, `.btn-special`, `.section-bg-main`) in `src/index.css`.
+* **Theme-Responsive Design (Light/Dark Mode)**: Ensure all views and components seamlessly support Light Mode and Dark Mode using standard semantic Tailwind classes or the `dark:` modifier.
+
+## Component Reuse
 * **Check the Components Folder**: Before creating or styling any element from scratch (such as cards, buttons, modals, or layouts), inspect the shared components in `src/components/ui/` or `src/components/layout/` and use them.
 * **Avoid Boilerplate**: If you identify repetitive patterns of HTML markup and styling (e.g., repeated forms, buttons), modularize them into reusable components within the `src/components/ui/` folder.
 * **Component Names**: Use structured semantic React components with appropriate TypeScript typing.
 
-## 3. API Typing & Integrations
+## API Typing & Integrations
 * **Backend Types**: Use the API typing generated in the backend (mapped from `liao-backend/src/types/api.ts` as `@liao/api-types`) to ensure frontend API call integrity and coherence.
 
-## 4. Commits
-The commit message should be structured as follows:
+## Commits
+The commit message should be structured as follows. Always commit in english.
 
 <type>[optional scope]: <description>
 [optional body]

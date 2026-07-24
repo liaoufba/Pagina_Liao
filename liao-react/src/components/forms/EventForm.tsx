@@ -10,7 +10,66 @@ interface EventFormProps {
     onCancel: () => void;
 }
 
+const extractMaterialsFromDescription = (description?: string | null) => {
+    if (!description) return {};
+    try {
+        const parsed = JSON.parse(description);
+        const materials = parsed?.materials;
+        if (!materials || typeof materials !== 'object') return {};
+        return {
+            slidesUrl: typeof materials.slidesUrl === 'string' ? materials.slidesUrl : '',
+            recordingUrl: typeof materials.recordingUrl === 'string' ? materials.recordingUrl : '',
+            photosUrl: typeof materials.photosUrl === 'string' ? materials.photosUrl : '',
+            certificatesUrl: typeof materials.certificatesUrl === 'string' ? materials.certificatesUrl : ''
+        };
+    } catch {
+        return {};
+    }
+};
+
+const mergeMaterialsIntoDescription = (
+    description: string,
+    materials: {
+        slidesUrl: string;
+        recordingUrl: string;
+        photosUrl: string;
+        certificatesUrl: string;
+    }
+) => {
+    const normalizedMaterials = {
+        slidesUrl: materials.slidesUrl.trim(),
+        recordingUrl: materials.recordingUrl.trim(),
+        photosUrl: materials.photosUrl.trim(),
+        certificatesUrl: materials.certificatesUrl.trim()
+    };
+    const hasMaterials = Object.values(normalizedMaterials).some(Boolean);
+
+    try {
+        const parsed = JSON.parse(description);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('invalid description json shape');
+        }
+        const nextDescription = { ...parsed } as Record<string, unknown>;
+        if (hasMaterials) {
+            nextDescription.materials = normalizedMaterials;
+        } else {
+            delete nextDescription.materials;
+        }
+        return JSON.stringify(nextDescription);
+    } catch {
+        if (!hasMaterials) return description;
+        return JSON.stringify({
+            presentation: {
+                enabled: Boolean(description.trim()),
+                content: description
+            },
+            materials: normalizedMaterials
+        });
+    }
+};
+
 const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => {
+    const materialsFromDescription = extractMaterialsFromDescription(event?.description);
     const [formData, setFormData] = useState({
         title: event?.title || '',
         slug: event?.slug || '',
@@ -24,7 +83,18 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
         partners: (event?.partners as Partner[])?.map(p => p.id) || [] as number[],
         locations: event?.location ? event.location.split(' | ') : [],
         subscribe: event?.subscribe || '',
-        themeMode: (event as any)?.themeMode || 'dark'
+        themeMode: (event as any)?.themeMode || 'dark',
+        fontClass: (event as any)?.fontClass || 'font-sans',
+        borderRadius: (event as any)?.borderRadius || 'round',
+        palette: Array.isArray((event as any)?.palette) && (event as any)?.palette.length > 0
+            ? (event as any).palette
+            : ['#6366f1', '#a855f7', '#ec4899'],
+        materials: {
+            slidesUrl: (event as any)?.materials?.slidesUrl || materialsFromDescription.slidesUrl || '',
+            recordingUrl: (event as any)?.materials?.recordingUrl || materialsFromDescription.recordingUrl || '',
+            photosUrl: (event as any)?.materials?.photosUrl || materialsFromDescription.photosUrl || '',
+            certificatesUrl: (event as any)?.materials?.certificatesUrl || materialsFromDescription.certificatesUrl || ''
+        }
     });
 
     const [allPartners, setAllPartners] = useState<Partner[]>([]);
@@ -52,7 +122,8 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
         try {
             const dataToSubmit = {
                 ...formData,
-                location: formData.locations.join(' | ')
+                location: formData.locations.join(' | '),
+                description: mergeMaterialsIntoDescription(formData.description, formData.materials)
             };
             if (event && event.id !== undefined) {
                 await apiService.updateEvent(event.id, dataToSubmit);
@@ -211,17 +282,140 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
                         />
                         <p className="text-[10px] text-neutral-500 mt-1">Habilita o botão "Realizar Inscrição" na página do evento.</p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Tema da Página do Evento</label>
-                        <select
-                            className="input-field w-full"
-                            value={formData.themeMode}
-                            onChange={(e) => setFormData({ ...formData, themeMode: e.target.value })}
-                        >
-                            <option value="dark">Escuro (Dark Mode)</option>
-                            <option value="light">Claro (Light Mode)</option>
-                        </select>
-                        <p className="text-[10px] text-neutral-500 mt-1">Define se a página do evento será exibida com fundo claro ou escuro.</p>
+                    {/* Personalização Visual do Evento */}
+                    <div className="pt-4 border-t dark:border-neutral-800 space-y-4">
+                        <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Personalização Visual do Evento</h4>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Tema da Página</label>
+                                <select
+                                    className="input-field w-full text-xs"
+                                    value={formData.themeMode}
+                                    onChange={(e) => setFormData({ ...formData, themeMode: e.target.value })}
+                                >
+                                    <option value="dark">Escuro (Dark Mode)</option>
+                                    <option value="light">Claro (Light Mode)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Estilo de Bordas</label>
+                                <select
+                                    className="input-field w-full text-xs"
+                                    value={formData.borderRadius}
+                                    onChange={(e) => setFormData({ ...formData, borderRadius: e.target.value })}
+                                >
+                                    <option value="round">Arredondadas (1.5rem / 2rem)</option>
+                                    <option value="squared">Retangulares (0px / Cantos Retos)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">Estilo de Fonte / Tipografia</label>
+                            <select
+                                className="input-field w-full text-xs"
+                                value={formData.fontClass}
+                                onChange={(e) => setFormData({ ...formData, fontClass: e.target.value })}
+                            >
+                                <option value="font-sans">Padrão (Inter / Sans-serif)</option>
+                                <option value="font-serif">Elegante (Playfair Display / Serif)</option>
+                                <option value="font-mono">Código / Tech (JetBrains Mono)</option>
+                                <option value="font-space">Moderno / Space (Space Grotesk)</option>
+                                <option value="font-outfit">Contemporâneo (Outfit)</option>
+                                <option value="font-clash">Destaque (Clash Display)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-2">Paleta de Cores do Evento</label>
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                {[0, 1, 2].map((idx) => (
+                                    <div key={idx} className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-neutral-500 font-medium">
+                                            {idx === 0 ? 'Primária' : idx === 1 ? 'Secundária' : 'Terciária'}
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                type="color"
+                                                className="w-7 h-7 rounded cursor-pointer border border-neutral-300 dark:border-neutral-700 bg-transparent p-0 flex-shrink-0"
+                                                value={formData.palette[idx] || '#6366f1'}
+                                                onChange={(e) => {
+                                                    const newPalette = [...formData.palette];
+                                                    newPalette[idx] = e.target.value;
+                                                    setFormData({ ...formData, palette: newPalette });
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                className="input-field text-xs font-mono w-full px-2 py-1"
+                                                value={formData.palette[idx] || '#6366f1'}
+                                                onChange={(e) => {
+                                                    const newPalette = [...formData.palette];
+                                                    newPalette[idx] = e.target.value;
+                                                    setFormData({ ...formData, palette: newPalette });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="flex items-center gap-2 pt-1">
+                                <span className="text-[10px] text-neutral-500 font-medium">Prévia:</span>
+                                <div 
+                                    className="h-3.5 flex-1 rounded-full shadow-inner border border-neutral-200 dark:border-neutral-700"
+                                    style={{
+                                        background: `linear-gradient(to right, ${formData.palette[0] || '#6366f1'}, ${formData.palette[1] || '#a855f7'}, ${formData.palette[2] || '#ec4899'})`
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Materiais Pós-Evento */}
+                    <div className="pt-4 border-t dark:border-neutral-800 space-y-3">
+                        <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Materiais do Evento (Pós-Evento)</h4>
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">URL da Gravação / Vídeo</label>
+                            <input
+                                type="url"
+                                placeholder="https://youtube.com/watch?v=..."
+                                className="input-field w-full text-xs"
+                                value={formData.materials.recordingUrl}
+                                onChange={(e) => setFormData({ ...formData, materials: { ...formData.materials, recordingUrl: e.target.value } })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">URL dos Slides / Apresentação</label>
+                            <input
+                                type="url"
+                                placeholder="https://drive.google.com/..."
+                                className="input-field w-full text-xs"
+                                value={formData.materials.slidesUrl}
+                                onChange={(e) => setFormData({ ...formData, materials: { ...formData.materials, slidesUrl: e.target.value } })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">URL do Álbum de Fotos Extra</label>
+                            <input
+                                type="url"
+                                placeholder="https://photos.google.com/..."
+                                className="input-field w-full text-xs"
+                                value={formData.materials.photosUrl}
+                                onChange={(e) => setFormData({ ...formData, materials: { ...formData.materials, photosUrl: e.target.value } })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">URL de Emissão de Certificados</label>
+                            <input
+                                type="url"
+                                placeholder="https://exemplo.com/certificados"
+                                className="input-field w-full text-xs"
+                                value={formData.materials.certificatesUrl}
+                                onChange={(e) => setFormData({ ...formData, materials: { ...formData.materials, certificatesUrl: e.target.value } })}
+                            />
+                        </div>
                     </div>
                 </div>
 

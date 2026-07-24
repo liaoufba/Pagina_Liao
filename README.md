@@ -32,8 +32,45 @@ npm run dev
 
 ## 📁 Repository Structure
 
-- [**`liao-backend/`**](./liao-backend/README.md): Node.js + Express + Prisma. The "Engine" of the application.
-- [**`liao-react/`**](./liao-react/README.md): React + Vite + Tailwind. The "Face" of the application.
+- [**`liao-backend/`**](./liao-backend/README.md): Node.js + Express + Prisma. The engine of the application.
+- [**`liao-react/`**](./liao-react/README.md): React + Vite + Tailwind. The user interface of the application.
+- [**`docs/`**](./docs): Interactive documentation powered by mdBook for human developers and LLM agents.
+
+---
+
+## Project Documentation (mdBook)
+
+The project includes an interactive documentation book powered by [mdBook](https://rust-lang.github.io/mdBook/). It covers system design rules, color guidelines, component standards, and architecture for both human developers and LLM coding assistants.
+
+### Render Documentation Locally
+
+To serve and view the documentation locally in your browser:
+
+1. **Install mdBook** (if not installed):
+   ```bash
+   # On Linux/macOS via Cargo:
+   cargo install mdbook
+
+   # Or via system package manager (Debian/Ubuntu):
+   sudo apt install mdbook
+   ```
+
+2. **Serve the Docs**:
+   Run from the repository root:
+   ```bash
+   npm run docs:serve
+   # Or directly using the CLI:
+   mdbook serve docs
+   ```
+
+3. **Open in Browser**:
+   Navigate to `http://localhost:3000` to browse the interactive documentation book.
+
+To build the static HTML book output:
+```bash
+npm run docs:build
+# Output will be generated in docs/book/
+```
 
 ---
 

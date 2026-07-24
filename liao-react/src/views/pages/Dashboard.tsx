@@ -4,24 +4,20 @@ import { apiService } from '../../services/api';
 import type { Member } from '../../models/Member';
 import type { Article } from '../../models/Article';
 import InteractiveBanner from '../../components/ui/InteractiveBanner';
+import TechCtaBackground from '../../components/ui/TechCtaBackground';
 import { useSEO } from '../../hooks/useSEO';
 import Button from '../../components/ui/Button';
+import {
+    IoHardwareChipOutline,
+    IoStatsChartOutline,
+    IoFlaskOutline,
+    IoRocketOutline
+} from 'react-icons/io5';
 
 // Simple Carousel Component
 const NewsCarousel: React.FC<{ articles: Article[] }> = ({ articles }) => {
     const navigate = useNavigate();
     const [currentIndex, setCurrentIndex] = useState(0);
-
-    // Logic for "TranslateX" auto-sliding carousel
-    // Rules:
-    // 1. Horizontal track slides automatically.
-    // 2. Interval 3s, advances 1 slide.
-    // 3. Always 3 cards visible (desktop and mobile).
-
-    // We display 3 items per "screen". 
-    // To advance 1 slide, we shift by 33.33%.
-    // To avoid empty space at the end, we stop when (index) > (total - 3).
-    // Or we loop back to 0. simple loop for now.
 
     const maxIndex = Math.max(0, articles.length - 3);
 
@@ -53,7 +49,7 @@ const NewsCarousel: React.FC<{ articles: Article[] }> = ({ articles }) => {
                 {articles.map((article, idx) => (
                     <div
                         key={`${article.id}-${idx}`}
-                        className="w-1/3 shrink-0 px-2" // Each item is 33.33% width + padding for gap
+                        className="w-1/3 shrink-0 px-2"
                     >
                         <div
                             onClick={() => navigate(`/newsletter/${article.id}`)}
@@ -98,13 +94,13 @@ const NewsCarousel: React.FC<{ articles: Article[] }> = ({ articles }) => {
                 <>
                     <button
                         onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                        className="hidden md:block absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/80 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 p-2 rounded-full shadow hover:bg-white dark:hover:bg-neutral-700 focus:outline-none z-10 transition-all hover:scale-110 border border-neutral-100 dark:border-neutral-700"
+                        className="hidden md:block absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/80 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 p-2 rounded-full shadow hover:bg-white dark:hover:bg-neutral-700 focus:outline-none z-10 transition-all hover:scale-110 border border-neutral-100 dark:border-neutral-700 cursor-pointer"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                        className="hidden md:block absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/80 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 p-2 rounded-full shadow hover:bg-white dark:hover:bg-neutral-700 focus:outline-none z-10 transition-all hover:scale-110 border border-neutral-100 dark:border-neutral-700"
+                        className="hidden md:block absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/80 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 p-2 rounded-full shadow hover:bg-white dark:hover:bg-neutral-700 focus:outline-none z-10 transition-all hover:scale-110 border border-neutral-100 dark:border-neutral-700 cursor-pointer"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     </button>
@@ -128,7 +124,6 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch basic counts, events and latest news
                 const [membersRes, projectsRes, articlesRes, eventsRes] = await Promise.all([
                     apiService.getMembers(),
                     apiService.getProjects(),
@@ -136,7 +131,6 @@ const Dashboard: React.FC = () => {
                     apiService.getEvents(),
                 ]);
 
-                // Extract data safely
                 const members = (membersRes.success && Array.isArray(membersRes.data)) ? membersRes.data : [];
                 const projects = (projectsRes.success && Array.isArray(projectsRes.data)) ? projectsRes.data : [];
                 const articles = (articlesRes.success && Array.isArray(articlesRes.data)) ? articlesRes.data : [];
@@ -149,12 +143,10 @@ const Dashboard: React.FC = () => {
                     events: events.length,
                 });
 
-                // Sort articles by date descending
                 const sortedArticles = articles.sort((a: Article, b: Article) =>
                     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 );
 
-                // Keep top 6 for carousel to have enough content to rotate
                 setRecentArticles(sortedArticles.slice(0, 6));
 
             } catch (error) {
@@ -181,27 +173,122 @@ const Dashboard: React.FC = () => {
             {/* Hero Section - Interactive Particle Canvas Banner */}
             <InteractiveBanner />
 
-            {/* Intro Section - SEO Entity & Presentation */}
-            <section className="py-16 bg-neutral-50 dark:bg-neutral-900/40 border-b border-neutral-100 dark:border-neutral-800 transition-colors duration-200">
-                <div className="max-w-3xl mx-auto px-4 text-center">
-                    <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-300 leading-relaxed font-light">
-                        A <strong className="font-semibold text-neutral-900 dark:text-white">LIAO (Liga Acadêmica de Inteligência Artificial e Otimização)</strong> é uma entidade estudantil oficial da <strong className="font-semibold text-neutral-900 dark:text-white">UFBA (Universidade Federal da Bahia)</strong>, sediada em Salvador. Nosso objetivo é fomentar o ensino, a pesquisa e a extensão nas áreas de ciência de dados, machine learning e otimização de sistemas, preparando talentos para a inovação acadêmica e profissional.
-                    </p>
+            {/* Presentation Card Section */}
+            <section className="py-14 bg-neutral-50 dark:bg-neutral-900/60 border-b border-neutral-200/80 dark:border-neutral-800 transition-colors duration-200">
+                <div className="max-w-6xl mx-auto px-4">
+                    <div className="relative p-8 md:p-10 rounded-3xl bg-white dark:bg-neutral-800/80 border border-neutral-200/80 dark:border-neutral-700/80 shadow-xl shadow-neutral-900/5 dark:shadow-neutral-950/40 overflow-hidden">
+                        {/* Background Accent Gradients */}
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-primary-500/10 via-cyan-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-liao-yellow/10 via-liao-red/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8">
+                            <div className="flex-1 text-left">
+                                <p className="text-base sm:text-lg text-neutral-700 dark:text-neutral-200 leading-relaxed font-normal">
+                                    A <strong className="font-semibold text-neutral-900 dark:text-white">LIAO (Liga Acadêmica de Inteligência Artificial e Otimização)</strong> é uma entidade estudantil oficial da <strong className="font-semibold text-neutral-900 dark:text-white">UFBA (Universidade Federal da Bahia)</strong>, sediada em Salvador. Nosso objetivo é fomentar o ensino, a pesquisa e a extensão nas áreas de ciência de dados, machine learning e otimização de sistemas, preparando talentos para a inovação acadêmica e profissional.
+                                </p>
+
+                                {/* Tech Tags */}
+                                <div className="mt-6 flex flex-wrap gap-2.5">
+                                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-neutral-100 dark:bg-neutral-700/60 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-600/60 flex items-center gap-1.5">
+                                        <IoHardwareChipOutline className="text-primary-500" /> Machine Learning & Deep Learning
+                                    </span>
+                                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-neutral-100 dark:bg-neutral-700/60 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-600/60 flex items-center gap-1.5">
+                                        <IoStatsChartOutline className="text-amber-500" /> Otimização & Pesquisa Operacional
+                                    </span>
+                                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-neutral-100 dark:bg-neutral-700/60 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-600/60 flex items-center gap-1.5">
+                                        <IoFlaskOutline className="text-emerald-500" /> Pesquisa & Extensão Universitária
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto">
+                                <Link to="/prosel" className="w-full">
+                                    <Button variant="special" size="md" className="w-full text-center">
+                                        Processo Seletivo
+                                    </Button>
+                                </Link>
+                                <Link to="/projects" className="w-full">
+                                    <Button variant="secondary" size="md" className="w-full text-center bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white border border-neutral-200 dark:border-neutral-600">
+                                        Ver Projetos
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Nossos Pilares de Atuação */}
+            <section className="py-20 bg-white dark:bg-neutral-900 border-b border-neutral-200/80 dark:border-neutral-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-16">
+                        <span className="text-sm font-bold text-primary-600 uppercase tracking-widest">Excelência & Tecnologia</span>
+                        <h2 className="text-3xl sm:text-4xl font-bold mt-2 text-neutral-900 dark:text-white">Pilares de Estudo e Atuação da LIAO UFBA</h2>
+                        <p className="mt-3 text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto text-base">
+                            Unindo rigor científico, aplicação prática e desenvolvimento contínuo de talentos.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Pillar 1 */}
+                        <div className="p-6 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 hover:border-red-500/40 dark:hover:border-red-500/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                                <IoHardwareChipOutline />
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Inteligência Artificial</h3>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                                Modelos preditivos, redes neurais profundas, visão computacional e processamento de linguagem natural.
+                            </p>
+                        </div>
+
+                        {/* Pillar 2 */}
+                        <div className="p-6 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 hover:border-amber-500/40 dark:hover:border-amber-500/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                                <IoStatsChartOutline />
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Otimização Combinatória</h3>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                                Algoritmos meta-heurísticos e pesquisa operacional para solução de problemas complexos de larga escala.
+                            </p>
+                        </div>
+
+                        {/* Pillar 3 */}
+                        <div className="p-6 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 hover:border-blue-500/40 dark:hover:border-blue-500/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                                <IoFlaskOutline />
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Pesquisa Científica</h3>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                                Produção acadêmica de alto nível, submissão de artigos e participação nos principais eventos da área.
+                            </p>
+                        </div>
+
+                        {/* Pillar 4 */}
+                        <div className="p-6 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700 hover:border-emerald-500/40 dark:hover:border-emerald-500/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                                <IoRocketOutline />
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Extensão & Projetos</h3>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                                Workshops práticos, maratonas de programação e integração direta entre comunidade e universidade.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             {/* Stats Section - Clean & Modern */}
-            <section className="py-20 section-bg-main">
+            <section id="stats-section" className="py-20 section-bg-main">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
                         <span className="text-sm font-bold text-primary-600 uppercase tracking-widest">Nossa Comunidade</span>
                         <h2 className="text-3xl font-bold mt-2 text-neutral-900 dark:text-white">Impacto Acadêmico e Científico da LIAO UFBA</h2>
                     </div>
 
-                    {/* Desktop: 4 Columns | Mobile: Horizontal Scrollable Row (Swipeable Slider with 2 cards visible) */}
+                    {/* Desktop: 4 Columns | Mobile: Horizontal Scrollable Row */}
                     <div className="flex md:grid overflow-x-auto md:overflow-visible gap-4 md:gap-6 md:grid-cols-4 pb-6 md:pb-0 snap-x snap-mandatory scrollbar-none">
                         {/* L - Membros Ativos (Red) */}
-                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
+                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
                             <div className="text-3xl sm:text-4xl md:text-6xl font-black mb-1 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#E53935] to-[#ef5350] drop-shadow-[0_2px_8px_rgba(229,57,53,0.15)]">
                                 {stats.members}
                             </div>
@@ -210,7 +297,7 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         {/* I - Projetos Realizados (Yellow) */}
-                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
+                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
                             <div className="text-3xl sm:text-4xl md:text-6xl font-black mb-1 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#FBC02D] to-[#fdd835] drop-shadow-[0_2px_8px_rgba(251,192,45,0.15)]">
                                 {stats.projects}
                             </div>
@@ -219,7 +306,7 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         {/* A - Artigos e Newsletter (Blue) */}
-                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
+                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
                             <div className="text-3xl sm:text-4xl md:text-6xl font-black mb-1 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#1E88E5] to-[#42a5f5] drop-shadow-[0_2px_8px_rgba(30,136,229,0.15)]">
                                 {stats.articles}
                             </div>
@@ -228,7 +315,7 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         {/* O - Eventos e Extensão (Green) */}
-                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
+                        <div className="w-[calc(50%-8px)] min-w-[145px] md:w-auto md:min-w-0 flex-shrink-0 snap-center p-4 md:p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 hover:shadow-xl dark:hover:shadow-neutral-950/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center">
                             <div className="text-3xl sm:text-4xl md:text-6xl font-black mb-1 md:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#43A047] to-[#66bb6a] drop-shadow-[0_2px_8px_rgba(67,160,71,0.15)]">
                                 {stats.events}
                             </div>
@@ -241,7 +328,6 @@ const Dashboard: React.FC = () => {
 
             {/* Latest News - Carousel */}
             <section className="py-20 section-bg-alt text-neutral-900 dark:text-white border-t border-b border-neutral-200 dark:border-neutral-800/80 relative overflow-hidden">
-                {/* Background decoration */}
                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-success-500/10 dark:bg-success-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -269,24 +355,21 @@ const Dashboard: React.FC = () => {
                 </div>
             </section>
 
-            {/* Call to Action - Modern Premium Grid */}
+            {/* Call to Action - Modern Premium Tech Background */}
             <section className="py-24 premium-cta-bg text-neutral-900 dark:text-white border-t border-b border-neutral-200 dark:border-neutral-800/80 relative overflow-hidden">
-                {/* Premium CSS Grid Pattern */}
-                <div className="absolute inset-0 premium-grid pointer-events-none"></div>
-                
-                {/* Subtle Gold Central Glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-gradient-to-tr from-[#bf953f]/10 to-[#b38728]/10 rounded-full blur-3xl pointer-events-none opacity-75 dark:opacity-30"></div>
+                {/* Tech Background Animation with Particles & Circuit Nodes */}
+                <TechCtaBackground />
                 
                 <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
                     <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
-                        Participe da Liga Acadêmica LIAO UFBA
+                        Participe da LIAO
                     </h2>
                     <p className="text-xl text-neutral-600 dark:text-neutral-300 mb-10 leading-relaxed max-w-2xl mx-auto">
                         Faça parte de uma comunidade apaixonada por tecnologia e inovação.
                         Inscreva-se no nosso processo seletivo e potencialize sua jornada acadêmica.
                     </p>
                     <Link to="/prosel">
-                        <Button variant="premium" size="lg">
+                        <Button variant="special" size="lg">
                             Quero me Inscrever
                         </Button>
                     </Link>

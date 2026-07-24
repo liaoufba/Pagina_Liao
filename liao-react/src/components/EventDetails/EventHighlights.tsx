@@ -4,9 +4,10 @@ import FadeInSection from './FadeInSection';
 
 interface EventHighlightsProps {
     highlights: string[];
+    isPast?: boolean;
 }
 
-const EventHighlights: React.FC<EventHighlightsProps> = ({ highlights }) => {
+const EventHighlights: React.FC<EventHighlightsProps> = ({ highlights, isPast = false }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -66,7 +67,9 @@ const EventHighlights: React.FC<EventHighlightsProps> = ({ highlights }) => {
             >
                 <div className="flex items-center justify-between gap-6 mb-12 px-2">
                     <div className="flex items-center gap-4">
-                        <h3 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white whitespace-nowrap">O que esperar</h3>
+                        <h3 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white whitespace-nowrap">
+                            {isPast ? 'Destaques do Evento' : 'O que esperar'}
+                        </h3>
                         <div className="hidden sm:block h-px w-32 bg-gradient-to-r from-neutral-200 dark:from-white/20 to-transparent"></div>
                     </div>
                     
@@ -125,7 +128,9 @@ const EventHighlights: React.FC<EventHighlightsProps> = ({ highlights }) => {
  
                                     <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-white/5 flex items-center gap-2 text-[var(--event-primary)] opacity-40 group-hover:opacity-100 transition-all duration-500">
                                         <Check size={16} />
-                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-none">Incluso</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] leading-none">
+                                            {isPast ? 'Destaque' : 'Incluso'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

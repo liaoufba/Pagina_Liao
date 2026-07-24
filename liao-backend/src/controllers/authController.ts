@@ -38,9 +38,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Find user
-        const user = await (prisma.user.findUnique as any)({
-            where: { email },
+        // Find user by email or name
+        const user = await (prisma.user.findFirst as any)({
+            where: {
+                OR: [
+                    { email },
+                    { name: email }
+                ]
+            },
             select: {
                 id: true, email: true, password: true,
                 name: true, role: true, permissions: true,

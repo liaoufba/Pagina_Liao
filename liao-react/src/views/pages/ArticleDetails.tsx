@@ -121,7 +121,7 @@ const ArticleDetails: React.FC = () => {
             </div>
 
             {/* Content Section */}
-            <article className="max-w-4xl mx-auto px-6 py-12 md:py-16">
+            <article className="max-w-4xl mx-auto px-6 pt-8 md:pt-12 page-padding-bottom">
                 {/* Article Header */}
                 <div className="mb-10 pb-8 border-b border-neutral-100 dark:border-neutral-800">
                     {/* Tags */}

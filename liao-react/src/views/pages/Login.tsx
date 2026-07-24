@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { apiService } from '../../services/api';
 
 const Login: React.FC = () => {
@@ -8,6 +8,7 @@ const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,7 +23,8 @@ const Login: React.FC = () => {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
 
-            navigate('/admin');
+            const from = (location.state as any)?.from?.pathname || '/admin';
+            navigate(from);
         } catch (err: any) {
             setError(err.response?.data?.error || 'Erro ao fazer login');
         } finally {
@@ -48,15 +50,15 @@ const Login: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                Email
+                                Usuário ou Email
                             </label>
                             <input
-                                type="email"
+                                type="text"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="input-field"
-                                placeholder="admin@liao.com"
+                                placeholder={import.meta.env.DEV ? "test ou admin@liao.com" : "admin@liao.com"}
                             />
                         </div>
 

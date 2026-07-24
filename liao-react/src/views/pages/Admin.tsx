@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import MemberForm from '../../components/forms/MemberForm';
 import TutorForm from '../../components/forms/TutorForm';
@@ -13,8 +13,17 @@ import type { EventApi } from '../../models/Event';
 
 const Admin: React.FC = () => {
     const navigate = useNavigate();
+    const { section } = useParams<{ section?: string }>();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const [activeSection, setActiveSection] = useState<string>('');
+    const activeSection = section || '';
+
+    const setActiveSection = (newSection: string) => {
+        if (newSection) {
+            navigate(`/admin/${newSection}`);
+        } else {
+            navigate('/admin');
+        }
+    };
 
     // Members State
     const [members, setMembers] = useState<any[]>([]);

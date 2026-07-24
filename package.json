@@ -1,0 +1,8 @@
+{
+  "name": "pagina-liao",
+  "private": true,
+  "scripts": {
+    "docs:serve": "mdbook serve docs",
+    "docs:build": "mdbook build docs"
+  }
+}

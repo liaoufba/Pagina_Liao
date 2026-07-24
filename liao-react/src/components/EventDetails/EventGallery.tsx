@@ -10,8 +10,8 @@ const EventGallery: React.FC<EventGalleryProps> = ({ gallery }) => {
 
     return (
         <FadeInSection delay="delay-300">
-            <div className="space-y-8">
-                <h3 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white mb-6">Galeria</h3>
+            <div id="event-gallery-section" className="space-y-8 scroll-mt-24">
+                <h3 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white mb-6">Galeria do Evento</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {gallery.map((img, i) => (
                         <div 
