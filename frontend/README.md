@@ -16,7 +16,7 @@ The "Face" of the LIAO (Liga Acadêmica de Inteligência Artificial e Otimizaç�
 
 ### Prerequisites
 - Node.js (v18+)
-- Backend API running (see [**Backend README**](../liao-backend/README.md))
+- Backend API running (see [**Backend README**](../backend/README.md))
 
 ### Installation
 1. Install dependencies: `npm install`

@@ -3,7 +3,7 @@
 This file describes the guidelines to ensure design consistency, avoid boilerplate, and maximize the reuse of components and global configurations in this repository.
 
 ## Database Security
-Whenever the user asks for database changing and DB_ENV is set to prod in liao-backend/.env, ask the user if they're sure about that action.
+Whenever the user asks for database changing and DB_ENV is set to prod in backend/.env, ask the user if they're sure about that action.
 
 ## Design & Theme Guidelines
 * **Mandatory Design Rules Inspection**: Before making ANY frontend, UI, styling, layout, or component changes, AI Agents and LLMs MUST inspect and adhere to the authoritative design rules in `docs/src/design-rules/`:
@@ -18,7 +18,7 @@ Whenever the user asks for database changing and DB_ENV is set to prod in liao-b
 * **Component Names**: Use structured semantic React components with appropriate TypeScript typing.
 
 ## API Typing & Integrations
-* **Backend Types**: Use the API typing generated in the backend (mapped from `liao-backend/src/types/api.ts` as `@liao/api-types`) to ensure frontend API call integrity and coherence.
+* **Backend Types**: Use the API typing generated in the backend (mapped from `backend/src/types/api.ts` as `@liao/api-types`) to ensure frontend API call integrity and coherence.
 
 ## Commits
 The commit message should be structured as follows. Always commit in english.

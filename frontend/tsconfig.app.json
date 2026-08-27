@@ -17,7 +17,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@liao/api-types": ["../liao-backend/src/types/api.ts"]
+      "@liao/api-types": ["../backend/src/types/api.ts"]
     },
 
     /* Linting */

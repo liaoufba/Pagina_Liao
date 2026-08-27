@@ -14,7 +14,7 @@ For a fresh setup, follow these steps in order:
 
 #### Backend
 ```bash
-cd liao-backend
+cd backend
 npm install
 npm run db:setup
 npm run dev
@@ -22,7 +22,7 @@ npm run dev
 
 #### Frontend
 ```bash
-cd liao-react
+cd frontend
 npm install
 # Ensure VITE_API_URL=http://localhost:3001/api in your .env
 npm run dev
@@ -32,8 +32,8 @@ npm run dev
 
 ## 📁 Repository Structure
 
-- [**`liao-backend/`**](./liao-backend/README.md): Node.js + Express + Prisma. The engine of the application.
-- [**`liao-react/`**](./liao-react/README.md): React + Vite + Tailwind. The user interface of the application.
+- [**`backend/`**](./backend/README.md): Node.js + Express + Prisma. The engine of the application.
+- [**`frontend/`**](./frontend/README.md): React + Vite + Tailwind. The user interface of the application.
 - [**`docs/`**](./docs): Interactive documentation powered by mdBook for human developers and LLM agents.
 
 ---
@@ -79,16 +79,16 @@ npm run docs:build
 ### 🔄 The "Type Sync" Workflow
 This project uses an automated OpenAPI workflow to keep the frontend and backend in sync without manual type definitions.
 
-Whenever you change the **database schema** in `liao-backend/prisma/schema.prisma`:
+Whenever you change the **database schema** in `backend/prisma/schema.prisma`:
 1. **Migrate the DB:** `npx prisma migrate dev`
 2. **Sync Types:** 
    ```bash
-   cd liao-backend && npm run generate:types
+   cd backend && npm run generate:types
    ```
 This command regenerates the OpenAPI spec and updates the TypeScript interfaces used by the frontend.
 
 ### 🗄️ Database Management
-Refer to the [**Backend README**](./liao-backend/README.md#️-database-workflow-prisma) for detailed instructions on:
+Refer to the [**Backend README**](./backend/README.md#️-database-workflow-prisma) for detailed instructions on:
 - Applying schema changes.
 - Resetting the database.
 - Seeding example data.
@@ -106,7 +106,7 @@ Refer to the [**Backend README**](./liao-backend/README.md#️-database-workflow
 - **Frontend:** Build with `npm run build` and deploy the `dist/` folder.
 
 ## 🤝 Contributing
-Please refer to the specific READMEs in `liao-backend/` and `liao-react/` for detailed development guidelines.
+Please refer to the specific READMEs in `backend/` and `frontend/` for detailed development guidelines.
 
 ---
 **Built with ❤️ by LIAO Team**

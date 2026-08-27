@@ -136,7 +136,7 @@ async function main() {
       if (isPortOccupied) {
         console.error(`\n⚠️  [Port Conflict] Port ${port} is already in use, but connection failed with: "${pgErr.message}".`);
         console.error(`👉 If you have a local PostgreSQL running on port ${port}:`);
-        console.error(`   1. Please edit the DATABASE_URL in "liao-backend/.env" to include your correct password/credentials.`);
+        console.error(`   1. Please edit the DATABASE_URL in "backend/.env" to include your correct password/credentials.`);
         console.error(`   2. Or, stop your local PostgreSQL service and run this setup script again so Docker Compose can use the port.\n`);
         process.exit(1);
       }

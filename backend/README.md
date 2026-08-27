@@ -64,7 +64,7 @@ npx prisma db seed
 ### 4. 🔄 Toggling Environments (Dev vs. Prod)
 This project features an automated environment switcher. You can toggle between your local database and a production database without overriding your auto-configured local database string:
 
-1. Open `liao-backend/.env` and locate the **Database Configuration** section.
+1. Open `backend/.env` and locate the **Database Configuration** section.
 2. Toggle the `DB_ENV` setting:
    * `DB_ENV=dev`: Uses `DEV_DATABASE_URL` (automatically managed for your local machine or Docker).
    * `DB_ENV=prod`: Uses `PROD_DATABASE_URL` (points to your production database URL).
