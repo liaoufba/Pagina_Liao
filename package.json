@@ -2,6 +2,8 @@
   "name": "pagina-liao",
   "private": true,
   "scripts": {
+    "server:up": "npm run dev --prefix backend",
+    "client:up": "npm run dev --prefix frontend",
     "docs:serve": "mdbook serve docs",
     "docs:build": "mdbook build docs"
   }
