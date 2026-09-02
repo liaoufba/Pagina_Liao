@@ -249,9 +249,9 @@ const Admin: React.FC = () => {
             setCarouselImages(resolved);
             setOriginalCarouselImages(resolved);
             alert('Carrossel da página Sobre atualizado com sucesso! 🚀');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating carousel images config:', error);
-            alert(error.response?.data?.error || (error as Error).message || 'Falha ao atualizar carrossel.');
+            alert(error.response?.data?.error || error.message || 'Falha ao atualizar carrossel.');
         }
     };
 
