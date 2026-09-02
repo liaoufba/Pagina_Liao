@@ -12,3 +12,4 @@ prisma.config.ts.old
 reports.md
 .antigravitycli
 docs/book/
+backend/scripts/cloudinary-backups/

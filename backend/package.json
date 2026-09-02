@@ -11,7 +11,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:setup": "tsx scripts/resolve-env.ts && tsx scripts/setup-db.ts",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
-    "generate:types": "npm run generate:openapi && openapi-typescript openapi.json --output src/types/api.ts"
+    "generate:types": "npm run generate:openapi && openapi-typescript openapi.json --output src/types/api.ts",
+    "images:migrate:dry": "tsx scripts/migrate-images-to-cloudinary.ts --confirm-prod",
+    "images:migrate": "tsx scripts/migrate-images-to-cloudinary.ts --apply --confirm-prod",
+    "images:revert": "tsx scripts/revert-cloudinary-image-migration.ts --confirm-prod"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +24,7 @@
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
