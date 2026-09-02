@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import type { Article } from '../../models/Article';
+import MediaInput from '../ui/MediaInput';
+import { resolvePendingMediaTree, peekPendingPreview } from '../../utils/pendingMedia';
 
 interface ArticleFormProps {
     article?: Article;
@@ -90,19 +92,18 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
             return;
         }
 
-        const data = {
-            title,
-            description,
-            content,
-            images: filteredImages,
-            references: filteredRefs,
-            tags: tagsArray,
-            isPublished,
-            authorId: authorType === 'member' ? (authorId ? Number(authorId) : null) : null,
-            authorName: authorType === 'manual' ? authorName : null
-        };
-
         try {
+            const data = await resolvePendingMediaTree({
+                title,
+                description,
+                content,
+                images: filteredImages,
+                references: filteredRefs,
+                tags: tagsArray,
+                isPublished,
+                authorId: authorType === 'member' ? (authorId ? Number(authorId) : null) : null,
+                authorName: authorType === 'manual' ? authorName : null
+            });
             if (article) {
                 await apiService.updateArticle(article.id, data);
             } else {
@@ -110,7 +111,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
             }
             onSuccess();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar artigo');
+            setError(err.response?.data?.error || err.message || 'Erro ao salvar artigo');
         } finally {
             setLoading(false);
         }
@@ -118,7 +119,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
 
     const renderPreview = () => {
         const tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
-        const mainImage = images.find(img => img.trim() !== '') || 'https://via.placeholder.com/800x400?text=Sem+Imagem';
+        const rawImage = images.find(img => img.trim() !== '') || '';
+        const mainImage = peekPendingPreview(rawImage) || rawImage || 'https://via.placeholder.com/800x400?text=Sem+Imagem';
         const filteredRefs = references.filter(ref => ref.trim() !== '');
 
         return (
@@ -162,7 +164,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
                         {images.filter(img => img.trim() !== '').length > 1 && (
                             <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {images.filter(img => img.trim() !== '').map((url, i) => (
-                                    <img key={i} src={url} alt={`Gallery ${i}`} className="w-full h-24 object-cover rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer" />
+                                    <img key={i} src={peekPendingPreview(url) || url} alt={`Gallery ${i}`} className="w-full h-24 object-cover rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer" />
                                 ))}
                             </div>
                         )}
@@ -408,25 +410,26 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
 
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Imagens (URLs)</label>
+                                        <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Imagens</label>
                                         <span className="text-[10px] font-bold text-neutral-400">{images.length}/5</span>
                                     </div>
 
                                     <div className="space-y-3">
                                         {images.map((img, index) => (
-                                            <div key={index} className="flex gap-2 group">
-                                                <input
-                                                    type="url"
-                                                    value={img}
-                                                    onChange={(e) => handleImageChange(index, e.target.value)}
-                                                    placeholder="URL da imagem..."
-                                                    className="input-field flex-1 text-xs"
-                                                />
+                                            <div key={index} className="flex gap-2 group items-start">
+                                                <div className="flex-1">
+                                                    <MediaInput
+                                                        label={`Imagem ${index + 1}`}
+                                                        value={img}
+                                                        onChange={(value) => handleImageChange(index, value)}
+                                                        folder="articles"
+                                                    />
+                                                </div>
                                                 {images.length > 1 && (
                                                     <button
                                                         type="button"
                                                         onClick={() => removeImageField(index)}
-                                                        className="p-2 text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors"
+                                                        className="mt-8 p-2 text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
@@ -441,7 +444,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSuccess, onCancel 
                                                 className="w-full py-2 border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-400 hover:border-primary-500 hover:text-primary-500 transition-all flex items-center justify-center gap-2 text-xs font-bold"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                                Adicionar URL de Imagem
+                                                Adicionar imagem
                                             </button>
                                         )}
                                     </div>

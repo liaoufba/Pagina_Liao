@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 /**
  * @openapi
@@ -197,6 +198,14 @@ export const updateMember = async (req: Request, res: Response): Promise<void> =
         const { name, email, role, photo, bio, course, isFounder, linkedin, github, year, isActive } = req.body;
 
         const memberId = Number(id);
+        const previous = await prisma.member.findUnique({
+            where: { id: memberId },
+            select: { photo: true, isFounder: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Member not found' });
+            return;
+        }
 
         // 1. Validation for Restricted Roles (Directors)
         if (RESTRICTED_ROLES.includes(role) && isActive !== false) {
@@ -220,13 +229,7 @@ export const updateMember = async (req: Request, res: Response): Promise<void> =
 
         // 2. Validation for Founding Members limit if checking the box
         if (isFounder) {
-            // Check if this member is ALREADY a founder (no change needed)
-            const currentMember = await prisma.member.findUnique({
-                where: { id: memberId },
-                select: { isFounder: true }
-            });
-
-            if (currentMember && !currentMember.isFounder) {
+            if (!previous.isFounder) {
                 // If they were NOT a founder and we are making them one, check limit
                 const founderCount = await prisma.member.count({
                     where: { isFounder: true },
@@ -260,6 +263,7 @@ export const updateMember = async (req: Request, res: Response): Promise<void> =
         });
 
         res.json({ success: true, data: member });
+        await cleanupReplacedMedia(previous, member);
         logAudit(req, { action: 'UPDATE', resource: 'members', resourceId: member.id, details: { name: member.name, role: member.role } });
 
     } catch (error) {
@@ -292,11 +296,21 @@ export const updateMember = async (req: Request, res: Response): Promise<void> =
 export const deleteMember = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+        const previous = await prisma.member.findUnique({
+            where: { id: Number(id) },
+            select: { photo: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Member not found' });
+            return;
+        }
+
         await prisma.member.delete({
             where: { id: Number(id) },
         });
 
         res.json({ success: true, message: 'Member deleted successfully' });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'members', resourceId: Number(id) });
 
     } catch (error) {

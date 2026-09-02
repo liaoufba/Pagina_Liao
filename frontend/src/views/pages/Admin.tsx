@@ -7,6 +7,8 @@ import ProjectForm from '../../components/forms/ProjectForm';
 import ArticleForm from '../../components/forms/ArticleForm';
 import PartnerForm from '../../components/forms/PartnerForm';
 import EventForm from '../../components/forms/EventForm';
+import MediaInput from '../../components/ui/MediaInput';
+import { resolvePendingMediaTree } from '../../utils/pendingMedia';
 import FAQManagerModal from '../../components/admin/FAQManagerModal';
 import AuditModal from '../../components/admin/AuditModal';
 import type { EventApi } from '../../models/Event';
@@ -242,12 +244,14 @@ const Admin: React.FC = () => {
 
     const handleUpdateCarouselImages = async () => {
         try {
-            await apiService.updateConfig('about_carousel_images', JSON.stringify(carouselImages));
-            setOriginalCarouselImages(carouselImages);
+            const resolved = await resolvePendingMediaTree(carouselImages);
+            await apiService.updateConfig('about_carousel_images', JSON.stringify(resolved));
+            setCarouselImages(resolved);
+            setOriginalCarouselImages(resolved);
             alert('Carrossel da página Sobre atualizado com sucesso! 🚀');
         } catch (error) {
             console.error('Error updating carousel images config:', error);
-            alert('Falha ao atualizar carrossel.');
+            alert(error.response?.data?.error || (error as Error).message || 'Falha ao atualizar carrossel.');
         }
     };
 
@@ -477,17 +481,18 @@ const Admin: React.FC = () => {
                 <div className="bg-white dark:bg-neutral-800 shadow rounded-lg p-6 border dark:border-neutral-700 md:col-span-2">
                     <h3 className="text-lg font-medium text-neutral-900 dark:text-white mb-1">Carrossel de Imagens (Sobre Nós)</h3>
                     <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-                        Gerencie as imagens exibidas no carrossel da página "Sobre Nós". Digite o link da imagem e clique em adicionar.
+                        Gerencie as imagens do carrossel da página "Sobre Nós". Envie um arquivo ou cole uma URL, depois clique em adicionar.
                     </p>
                     
-                    <div className="flex gap-2 mb-6">
-                        <input
-                            type="url"
-                            value={newCarouselImageUrl}
-                            onChange={(e) => setNewCarouselImageUrl(e.target.value)}
-                            placeholder="https://exemplo.com/imagem.jpg"
-                            className="flex-1 rounded-md border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6 items-start">
+                        <div className="flex-1 w-full">
+                            <MediaInput
+                                label="Nova imagem"
+                                value={newCarouselImageUrl}
+                                onChange={setNewCarouselImageUrl}
+                                folder="carousel"
+                            />
+                        </div>
                         <button
                             type="button"
                             onClick={() => {

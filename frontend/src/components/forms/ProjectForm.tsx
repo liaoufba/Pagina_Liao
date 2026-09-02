@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { apiService } from '../../services/api';
 import type { Project } from '../../models/Project';
+import MediaInput from '../ui/MediaInput';
+import { resolvePendingMediaTree } from '../../utils/pendingMedia';
 
 interface ProjectFormProps {
     project?: Project;
@@ -46,14 +48,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel 
             return;
         }
 
-        const data = {
-            title,
-            description,
-            date,
-            images: filteredImages,
-        };
-
         try {
+            const data = await resolvePendingMediaTree({
+                title,
+                description,
+                date,
+                images: filteredImages,
+            });
             if (project) {
                 await apiService.updateProject(project.id, data);
             } else {
@@ -61,7 +62,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel 
             }
             onSuccess();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar projeto');
+            setError(err.response?.data?.error || err.message || 'Erro ao salvar projeto');
         } finally {
             setLoading(false);
         }
@@ -115,23 +116,23 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel 
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
                         Imagens do Projeto (Max 10)
-                        <span className="text-xs text-neutral-500 ml-2">Cole as URLs das imagens</span>
                     </label>
 
                     {images.map((img, index) => (
-                        <div key={index} className="flex gap-2 mb-2">
-                            <input
-                                type="url"
-                                value={img}
-                                onChange={(e) => handleImageChange(index, e.target.value)}
-                                placeholder="https://exemplo.com/imagem.jpg"
-                                className="input-field flex-1"
-                            />
+                        <div key={index} className="flex gap-2 mb-3 items-start">
+                            <div className="flex-1">
+                                <MediaInput
+                                    label={`Imagem ${index + 1}`}
+                                    value={img}
+                                    onChange={(value) => handleImageChange(index, value)}
+                                    folder="projects"
+                                />
+                            </div>
                             {images.length > 1 && (
                                 <button
                                     type="button"
                                     onClick={() => removeImageField(index)}
-                                    className="px-3 py-2 bg-danger-100 text-danger-600 rounded hover:bg-danger-200"
+                                    className="mt-8 px-3 py-2 bg-danger-100 text-danger-600 rounded hover:bg-danger-200"
                                 >
                                     X
                                 </button>

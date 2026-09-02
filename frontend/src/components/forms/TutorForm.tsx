@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { apiService } from '../../services/api';
+import MediaInput from '../ui/MediaInput';
+import { resolvePendingMediaTree } from '../../utils/pendingMedia';
 
 interface TutorFormProps {
     tutor?: any;
@@ -22,16 +24,15 @@ const TutorForm: React.FC<TutorFormProps> = ({ tutor, onSuccess, onCancel }) => 
         setLoading(true);
         setError('');
 
-        const data = {
-            name: name.trim(),
-            email: email.trim(),
-            subjects: subjects.split(',').map((s: string) => s.trim()).filter((s: string) => s),
-            bio: bio.trim(),
-            photo: photo.trim(),
-            availability: availability.trim(),
-        };
-
         try {
+            const data = await resolvePendingMediaTree({
+                name: name.trim(),
+                email: email.trim(),
+                subjects: subjects.split(',').map((s: string) => s.trim()).filter((s: string) => s),
+                bio: bio.trim(),
+                photo: photo.trim(),
+                availability: availability.trim(),
+            });
             if (tutor) {
                 await apiService.updateTutor(tutor.id, data);
             } else {
@@ -39,7 +40,7 @@ const TutorForm: React.FC<TutorFormProps> = ({ tutor, onSuccess, onCancel }) => 
             }
             onSuccess();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar tutor');
+            setError(err.response?.data?.error || err.message || 'Erro ao salvar tutor');
         } finally {
             setLoading(false);
         }
@@ -93,16 +94,13 @@ const TutorForm: React.FC<TutorFormProps> = ({ tutor, onSuccess, onCancel }) => 
                     />
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700">Foto URL</label>
-                    <input
-                        type="url"
-                        value={photo}
-                        onChange={(e) => setPhoto(e.target.value)}
-                        placeholder="https://..."
-                        className="input-field mt-1"
-                    />
-                </div>
+                <MediaInput
+                    label="Foto"
+                    value={photo}
+                    onChange={setPhoto}
+                    folder="tutors"
+                    helpText="Opcional. Envie um arquivo ou cole uma URL."
+                />
 
                 {/* Availability field hidden as per request */}
                 {/* <div>

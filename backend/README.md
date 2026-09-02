@@ -62,13 +62,14 @@ npx prisma db seed
 ```
 
 ### 4. 🔄 Toggling Environments (Dev vs. Prod)
-This project features an automated environment switcher. You can toggle between your local database and a production database without overriding your auto-configured local database string:
+Keep both URLs in `.env` and switch with `DB_ENV`. The process picks one at runtime; `.env` is not rewritten.
 
 1. Open `backend/.env` and locate the **Database Configuration** section.
 2. Toggle the `DB_ENV` setting:
-   * `DB_ENV=dev`: Uses `DEV_DATABASE_URL` (automatically managed for your local machine or Docker).
-   * `DB_ENV=prod`: Uses `PROD_DATABASE_URL` (points to your production database URL).
-3. The active `DATABASE_URL` used by Prisma is automatically synchronized whenever you run `npm run dev`, `npm run build`, or `npm run db:setup`.
+   * `DB_ENV=dev`: Uses `DEV_DATABASE_URL` (local Postgres or Docker Compose).
+   * `DB_ENV=prod`: Uses `PROD_DATABASE_URL` (cloud database).
+3. Restart the backend (`npm run dev`, or any `tsx src/server.ts` / Prisma command). Prisma reads the same resolved URL via `prisma.config.ts`.
+4. Hosted deploys (Vercel) can set a single `DATABASE_URL` instead of `DEV_` / `PROD_`.
 
 ---
 

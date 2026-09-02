@@ -52,6 +52,9 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
         return config;
     },
     (error) => {
@@ -104,6 +107,13 @@ export const apiService = {
     getCurrentUser: () => api.get('/auth/me'),
     getAdmins: () => api.get('/auth/admins'),
     deleteAdmin: (id: number) => api.delete(`/auth/users/${id}`),
+
+    uploadImage: (file: File, folder: string) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', folder);
+        return api.post('/uploads', formData);
+    },
 
     // Members
     getMembers: () => getCached('/members'),

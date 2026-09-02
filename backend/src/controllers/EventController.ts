@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
 import { AuthRequest } from '../types';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 /**
  * @openapi
@@ -205,6 +206,15 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
         const { id } = req.params;
         const { title, slug, description, coverImage, date, location, speakers, agenda, partners, gallery, highlights, palette, fontClass, borderRadius, subscribe, themeMode } = req.body;
 
+        const previous = await prisma.event.findUnique({
+            where: { id: Number(id) },
+            include: { speakers: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Event not found' });
+            return;
+        }
+
         const event = await prisma.event.update({
             where: { id: Number(id) },
             data: {
@@ -262,6 +272,7 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
         });
 
         res.json({ success: true, data: event });
+        await cleanupReplacedMedia(previous, event);
         logAudit(req, { action: 'UPDATE', resource: 'events', resourceId: event.id, details: { title: event.title } });
 
     } catch (error) {
@@ -333,11 +344,21 @@ export const deleteEvent = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
+        const previous = await prisma.event.findUnique({
+            where: { id: Number(id) },
+            include: { speakers: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Event not found' });
+            return;
+        }
+
         await prisma.event.delete({
             where: { id: Number(id) },
         });
 
         res.json({ success: true, message: 'Event deleted successfully' });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'events', resourceId: Number(id) });
 
     } catch (error) {

@@ -3,6 +3,12 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { Client } from 'pg';
 import * as net from 'net';
+import {
+  applyActiveDatabaseUrl,
+  DEV_DOCKER_URL,
+  getDbEnv,
+  isPlaceholderDatabaseUrl,
+} from './db-url';
 
 function checkPort(port: number, host: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -32,11 +38,21 @@ async function tryConnect(dbUrl: string): Promise<{ success: boolean; error?: an
   }
 }
 
+function writeEnvValue(envPath: string, key: string, value: string) {
+  let envContent = fs.readFileSync(envPath, 'utf8');
+  const pattern = new RegExp(`^${key}=.+$`, 'm');
+  if (pattern.test(envContent)) {
+    envContent = envContent.replace(pattern, `${key}="${value}"`);
+  } else {
+    envContent += `\n${key}="${value}"\n`;
+  }
+  fs.writeFileSync(envPath, envContent, 'utf8');
+}
+
 async function main() {
   const envPath = path.join(__dirname, '../.env');
   const envExamplePath = path.join(__dirname, '../.env.example');
 
-  // 1. Copy .env if not exists
   let envCreated = false;
   if (!fs.existsSync(envPath)) {
     console.log('📝 Creating .env from .env.example...');
@@ -44,78 +60,66 @@ async function main() {
     envCreated = true;
   }
 
-  // Load environment variables
   require('dotenv').config({ path: envPath });
 
-  const dbEnv = process.env.DB_ENV || 'dev';
+  const dbEnv = getDbEnv();
   let devDbUrl = process.env.DEV_DATABASE_URL || '';
-  let prodDbUrl = process.env.PROD_DATABASE_URL || '';
-  let dbUrl = process.env.DATABASE_URL || '';
-
-  const defaultPlaceholder = 'postgresql://username:password@localhost:5432/liao_db?schema=public';
 
   if (dbEnv === 'dev') {
-    // 2. Autofix DEV_DATABASE_URL if it is the default placeholder
-    if (devDbUrl === defaultPlaceholder || envCreated) {
+    const needsLocalDetect =
+      envCreated ||
+      !devDbUrl ||
+      isPlaceholderDatabaseUrl(devDbUrl) ||
+      devDbUrl === DEV_DOCKER_URL;
+
+    if (needsLocalDetect) {
       const isPortOpen = await checkPort(5432, 'localhost');
       if (isPortOpen) {
         const currentUser = process.env.USER || process.env.USERNAME || 'postgres';
         const localUrl = `postgresql://${currentUser}@localhost:5432/postgres`;
         console.log(`🔍 Port 5432 is open. Checking if we can connect as user "${currentUser}"...`);
-        
+
         const connTest = await tryConnect(localUrl);
         if (connTest.success) {
           const newDbUrl = `postgresql://${currentUser}@localhost:5432/liao_db?schema=public`;
           console.log(`⚙️ Detected running local PostgreSQL. Updating DEV_DATABASE_URL in .env to:`);
           console.log(`   ${newDbUrl}`);
-          
-          let envContent = fs.readFileSync(envPath, 'utf8');
-          envContent = envContent
-            .replace(/^DEV_DATABASE_URL=.+$/m, `DEV_DATABASE_URL="${newDbUrl}"`)
-            .replace(/^DATABASE_URL=.+$/m, `DATABASE_URL="${newDbUrl}"`);
-          fs.writeFileSync(envPath, envContent, 'utf8');
-          devDbUrl = newDbUrl;
-          dbUrl = newDbUrl;
-          
-          // Reload environment variables
-          process.env.DEV_DATABASE_URL = devDbUrl;
-          process.env.DATABASE_URL = dbUrl;
+          writeEnvValue(envPath, 'DEV_DATABASE_URL', newDbUrl);
+          process.env.DEV_DATABASE_URL = newDbUrl;
         }
       }
     }
-  } else {
-    // If we are in prod env, ensure DATABASE_URL matches PROD_DATABASE_URL
-    if (dbUrl !== prodDbUrl) {
-      console.log(`🔄 DB_ENV is set to "PROD". Synchronizing active DATABASE_URL...`);
-      let envContent = fs.readFileSync(envPath, 'utf8');
-      envContent = envContent.replace(/^DATABASE_URL=.+$/m, `DATABASE_URL="${prodDbUrl}"`);
-      fs.writeFileSync(envPath, envContent, 'utf8');
-      dbUrl = prodDbUrl;
-      process.env.DATABASE_URL = dbUrl;
-    }
-  }
-
-  // Parse DB details
-  const match = dbUrl.match(/postgres(?:ql)?:\/\/([^:]+)(?::([^@]+))?@([^:/]+)(?::(\d+))?\/([^?]+)/);
-  if (!match) {
-    console.error('❌ Invalid DATABASE_URL in .env');
+  } else if (!process.argv.includes('--confirm-prod')) {
+    console.error('❌ Refusing db:setup against production.');
+    console.error('   Set DB_ENV=dev, or re-run with --confirm-prod if you really mean to migrate prod.');
     process.exit(1);
   }
-  const [_, user, password, host, portStr, dbName] = match;
+
+  let dbUrl: string;
+  try {
+    dbUrl = applyActiveDatabaseUrl();
+  } catch (error) {
+    console.error('❌', (error as Error).message);
+    process.exit(1);
+  }
+
+  const match = dbUrl.match(/postgres(?:ql)?:\/\/([^:]+)(?::([^@]+))?@([^:/]+)(?::(\d+))?\/([^?]+)/);
+  if (!match) {
+    console.error('❌ Invalid database URL for the current DB_ENV');
+    process.exit(1);
+  }
+  const [, , , host, portStr, dbName] = match;
   const port = portStr ? parseInt(portStr) : 5432;
 
-  // 3. Connect/Start database
-  console.log(`📡 Connecting to PostgreSQL at ${host}:${port}...`);
+  console.log(`📡 Connecting to PostgreSQL at ${host}:${port} (DB_ENV=${dbEnv})...`);
   let isReady = false;
-  
-  // Try connecting
+
   const connCheck = await tryConnect(dbUrl);
   if (connCheck.success) {
     console.log('✅ Connected to database successfully.');
     isReady = true;
   } else {
     const pgErr = connCheck.error as any;
-    // If database does not exist, we can create it
     if (pgErr && pgErr.code === '3D000') {
       console.log(`🚧 Database "${dbName}" does not exist. Attempting to create it...`);
       const adminUrl = dbUrl.replace(`/${dbName}`, '/postgres');
@@ -131,21 +135,19 @@ async function main() {
         adminClient.end().catch(() => {});
       }
     } else if (host === 'localhost' || host === '127.0.0.1') {
-      // Check if port is already open (meaning another service is occupying it)
       const isPortOccupied = await checkPort(port, host);
       if (isPortOccupied) {
         console.error(`\n⚠️  [Port Conflict] Port ${port} is already in use, but connection failed with: "${pgErr.message}".`);
         console.error(`👉 If you have a local PostgreSQL running on port ${port}:`);
-        console.error(`   1. Please edit the DATABASE_URL in "backend/.env" to include your correct password/credentials.`);
+        console.error(`   1. Please edit DEV_DATABASE_URL in "backend/.env" to include your correct credentials.`);
         console.error(`   2. Or, stop your local PostgreSQL service and run this setup script again so Docker Compose can use the port.\n`);
         process.exit(1);
       }
 
-      // Connection refused or port closed, let's try starting docker-compose
       console.log('🐳 Database connection failed. Attempting to start PostgreSQL via Docker Compose...');
       try {
         execSync('docker compose up -d', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-        
+
         console.log('⏳ Waiting for PostgreSQL container to start up...');
         let retries = 30;
         while (!isReady && retries > 0) {
@@ -156,7 +158,6 @@ async function main() {
           } else {
             const retryErr = retryCheck.error as any;
             if (retryErr && retryErr.code === '3D000') {
-              // Create it
               const adminUrl = dbUrl.replace(`/${dbName}`, '/postgres');
               const adminClient = new Client({ connectionString: adminUrl });
               try {
@@ -165,7 +166,7 @@ async function main() {
                 await adminClient.end();
                 console.log(`✅ Created database "${dbName}" successfully.`);
                 isReady = true;
-              } catch (cErr) {
+              } catch {
                 adminClient.end().catch(() => {});
               }
             } else {
@@ -193,12 +194,11 @@ async function main() {
     process.exit(1);
   }
 
-  // 4. Run Prisma migrations
   console.log('🔄 Running Prisma migrations...');
   try {
     execSync('npx prisma migrate dev', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
     console.log('🚀 Database setup completed successfully!');
-  } catch (error) {
+  } catch {
     console.error('❌ Failed to run Prisma migrations.');
     process.exit(1);
   }

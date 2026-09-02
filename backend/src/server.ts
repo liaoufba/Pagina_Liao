@@ -13,6 +13,7 @@ import partnerRoutes from './routes/partners';
 import eventsRoutes from './routes/events';
 import auditRoutes from './routes/audit';
 import faqRoutes from './routes/faq';
+import uploadRoutes from './routes/uploads';
 console.log('[DEBUG] partnerRoutes imported type:', typeof partnerRoutes);
 import { errorHandler } from './middleware/errorHandler';
 import { getConfig, updateConfig } from './controllers/configController';
@@ -47,6 +48,7 @@ app.use('/api/partners', partnerRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/faqs', faqRoutes);
+app.use('/api/uploads', uploadRoutes);
 app.use('/api/partners', (req, res, next) => {
     console.log(`[DEBUG] Request to /api/partners: ${req.method} ${req.url}`);
     next();

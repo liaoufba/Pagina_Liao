@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
 import type { Partner } from '../../models/Partner';
 import type { EventApi } from '../../models/Event';
+import MediaInput from '../ui/MediaInput';
+import { resolvePendingMedia } from '../../utils/pendingMedia';
 
 interface PartnerFormProps {
     partner?: Partner | null;
@@ -66,9 +68,10 @@ const PartnerForm: React.FC<PartnerFormProps> = ({ partner, onSuccess, onCancel 
         setError('');
 
         try {
+            const resolvedImageUrl = await resolvePendingMedia(trimmedImageUrl);
             const data = {
                 name: trimmedName,
-                imageUrl: trimmedImageUrl,
+                imageUrl: resolvedImageUrl,
                 websiteUrl: trimmedWebsiteUrl || null,
                 isLeaguePartner,
                 // Pass selected event IDs so the backend can link them
@@ -84,7 +87,7 @@ const PartnerForm: React.FC<PartnerFormProps> = ({ partner, onSuccess, onCancel 
             onSuccess();
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data?.error || 'Erro ao salvar parceria.');
+            setError(err.response?.data?.error || err.message || 'Erro ao salvar parceria.');
         } finally {
             setLoading(false);
         }
@@ -118,17 +121,14 @@ const PartnerForm: React.FC<PartnerFormProps> = ({ partner, onSuccess, onCancel 
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">URL da Logo</label>
-                        <input
-                            type="url"
-                            required
-                            className="input-field w-full"
-                            value={imageUrl}
-                            onChange={(e) => setImageUrl(e.target.value)}
-                            placeholder="https://exemplo.com/logo.png"
-                        />
-                    </div>
+                    <MediaInput
+                        label="Logo"
+                        value={imageUrl}
+                        onChange={setImageUrl}
+                        folder="partners"
+                        required
+                        helpText="Envie um arquivo ou cole uma URL."
+                    />
 
                     <div>
                         <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Site/Rede Social (Opcional)</label>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { apiService } from '../../services/api';
+import MediaInput from '../ui/MediaInput';
+import { resolvePendingMediaTree } from '../../utils/pendingMedia';
 
 interface MemberFormProps {
     member?: any;
@@ -27,21 +29,20 @@ const MemberForm: React.FC<MemberFormProps> = ({ member, onSuccess, onCancel }) 
         setLoading(true);
         setError('');
 
-        const data = {
-            name,
-            email,
-            role,
-            isFounder,
-            year,
-            isActive,
-            course,
-            bio,
-            photo,
-            linkedin,
-            github,
-        };
-
         try {
+            const data = await resolvePendingMediaTree({
+                name,
+                email,
+                role,
+                isFounder,
+                year,
+                isActive,
+                course,
+                bio,
+                photo,
+                linkedin,
+                github,
+            });
             if (member) {
                 await apiService.updateMember(member.id, data);
             } else {
@@ -49,7 +50,7 @@ const MemberForm: React.FC<MemberFormProps> = ({ member, onSuccess, onCancel }) 
             }
             onSuccess();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar membro');
+            setError(err.response?.data?.error || err.message || 'Erro ao salvar membro');
         } finally {
             setLoading(false);
         }
@@ -134,16 +135,13 @@ const MemberForm: React.FC<MemberFormProps> = ({ member, onSuccess, onCancel }) 
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700">Foto URL</label>
-                    <input
-                        type="url"
-                        value={photo}
-                        onChange={(e) => setPhoto(e.target.value)}
-                        placeholder="https://..."
-                        className="input-field mt-1"
-                    />
-                </div>
+                <MediaInput
+                    label="Foto"
+                    value={photo}
+                    onChange={setPhoto}
+                    folder="members"
+                    helpText="Opcional. Envie um arquivo ou cole uma URL."
+                />
 
                 <div>
                     <label className="block text-sm font-medium text-neutral-700">Bio</label>

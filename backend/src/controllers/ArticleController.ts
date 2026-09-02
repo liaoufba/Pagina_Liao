@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 /**
  * @openapi
@@ -147,10 +148,20 @@ export const getArticles = async (req: Request, res: Response): Promise<void> =>
 export const deleteArticle = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+        const previous = await prisma.article.findUnique({
+            where: { id: Number(id) },
+            select: { images: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Article not found' });
+            return;
+        }
+
         await prisma.article.delete({
             where: { id: Number(id) },
         });
         res.json({ success: true, message: 'Article deleted successfully' });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'newsletter', resourceId: Number(id) });
 
     } catch (error) {
@@ -190,6 +201,15 @@ export const updateArticle = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        const previous = await prisma.article.findUnique({
+            where: { id: Number(id) },
+            select: { images: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Article not found' });
+            return;
+        }
+
         const article = await prisma.article.update({
             where: { id: Number(id) },
             data: {
@@ -209,6 +229,7 @@ export const updateArticle = async (req: Request, res: Response): Promise<void> 
         });
 
         res.json({ success: true, data: article });
+        await cleanupReplacedMedia(previous, article);
         logAudit(req, { action: 'UPDATE', resource: 'newsletter', resourceId: article.id, details: { title: article.title } });
 
     } catch (error) {

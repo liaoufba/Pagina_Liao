@@ -4,6 +4,8 @@ import type { EventApi } from '../../models/Event';
 import type { Partner } from '../../models/Partner';
 import EventContentManager from './EventContentManager';
 import { isHtmlEmbed } from '../../utils/embed';
+import MediaInput from '../ui/MediaInput';
+import { peekPendingPreview, releasePendingMedia, resolvePendingMediaTree, retainPendingMedia } from '../../utils/pendingMedia';
 
 interface EventFormProps {
     event?: EventApi | null;
@@ -121,11 +123,11 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
         e.preventDefault();
         setLoading(true);
         try {
-            const dataToSubmit = {
+            const dataToSubmit = await resolvePendingMediaTree({
                 ...formData,
                 location: formData.locations.join(' | '),
                 description: mergeMaterialsIntoDescription(formData.description, formData.materials)
-            };
+            });
             if (event && event.id !== undefined) {
                 await apiService.updateEvent(event.id, dataToSubmit);
             } else {
@@ -134,7 +136,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
             onSuccess();
         } catch (error: any) {
             console.error(error);
-            alert(error.response?.data?.error || 'Erro ao salvar evento');
+            alert(error.response?.data?.error || error.message || 'Erro ao salvar evento');
         } finally {
             setLoading(false);
         }
@@ -142,18 +144,25 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
 
     const addSpeaker = () => {
         if (!newSpeaker.name.trim()) return;
+        retainPendingMedia(newSpeaker.photo);
         setFormData({ ...formData, speakers: [...formData.speakers, { ...newSpeaker }] });
         setNewSpeaker({ name: '', role: '', photo: '' });
     };
 
     const addItem = (field: 'gallery' | 'highlights', value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
         if (!value.trim()) return;
+        if (field === 'gallery') retainPendingMedia(value);
         setFormData({ ...formData, [field]: [...(formData[field] as any[]), value] });
         setter('');
     };
 
     const removeItem = (field: 'speakers' | 'gallery' | 'highlights', index: number) => {
         const newList = [...(formData[field] as any[])];
+        const removed = newList[index];
+        if (field === 'gallery' || field === 'speakers') {
+            const media = field === 'speakers' ? removed?.photo : removed;
+            if (typeof media === 'string') releasePendingMedia(media);
+        }
         newList.splice(index, 1);
         setFormData({ ...formData, [field]: newList });
     };
@@ -262,16 +271,14 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">URL da Imagem de Capa</label>
-                        <input
-                            type="url"
-                            required
-                            className="input-field w-full"
-                            value={formData.coverImage}
-                            onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                        />
-                    </div>
+                    <MediaInput
+                        label="Imagem de capa"
+                        value={formData.coverImage}
+                        onChange={(coverImage) => setFormData({ ...formData, coverImage })}
+                        folder="events"
+                        required
+                        helpText="Envie um arquivo ou cole uma URL. Opcional: URL já hospedada."
+                    />
                     <div>
                         <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Link de Inscrição (Opcional)</label>
                         <input
@@ -448,30 +455,28 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
                                     placeholder="Cargo / Instituição"
                                 />
                             </div>
-                            <div className="flex gap-2">
-                                <input
-                                    type="url"
-                                    className="input-field text-sm flex-1"
-                                    value={newSpeaker.photo}
-                                    onChange={(e) => setNewSpeaker({ ...newSpeaker, photo: e.target.value })}
-                                    placeholder="URL da Foto de Perfil"
-                                />
-                                <button 
-                                    type="button" 
-                                    onClick={addSpeaker}
-                                    disabled={!newSpeaker.name.trim()}
-                                    className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50"
-                                >
-                                    Adicionar
-                                </button>
-                            </div>
+                            <MediaInput
+                                label="Foto de perfil"
+                                value={newSpeaker.photo}
+                                onChange={(photo) => setNewSpeaker({ ...newSpeaker, photo })}
+                                folder="speakers"
+                                helpText="Opcional. Envie um arquivo ou cole uma URL."
+                            />
+                            <button
+                                type="button"
+                                onClick={addSpeaker}
+                                disabled={!newSpeaker.name.trim()}
+                                className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50"
+                            >
+                                Adicionar
+                            </button>
                         </div>
                         <div className="flex flex-wrap gap-3">
                             {formData.speakers.map((s, i) => (
                                 <div key={i} className="flex items-center gap-3 bg-white dark:bg-neutral-800 p-2 pr-4 rounded-xl border dark:border-neutral-700 shadow-sm transition-all hover:border-primary-500/50">
                                     <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-700 border dark:border-neutral-600">
                                         {s.photo ? (
-                                            <img src={s.photo} alt={s.name} className="w-full h-full object-cover" />
+                                            <img src={peekPendingPreview(s.photo) || s.photo} alt={s.name} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-400">
                                                 {s.name?.charAt(0)}
@@ -515,29 +520,22 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
 
                     {/* Gallery */}
                     <div>
-                        <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                            Galeria (Fotos ou Embeds de Redes Sociais)
-                        </label>
-                        <p className="text-xs text-neutral-500 mb-2">
-                            Cole a URL de uma foto ou o código HTML de incorporação (&lt;iframe...&gt; ou Instagram embed).
-                        </p>
-                        <div className="flex gap-2 mb-3">
-                            <textarea
-                                rows={2}
-                                className="input-field flex-1 text-xs font-mono resize-y"
-                                value={newGalleryItem}
-                                onChange={(e) => setNewGalleryItem(e.target.value)}
-                                placeholder="URL da foto (ex: https://...) ou HTML Embed (ex: <iframe...> ou <blockquote class='instagram-media'...>)"
-                            />
-                            <button 
-                                type="button" 
-                                onClick={() => addItem('gallery', newGalleryItem, setNewGalleryItem)} 
-                                className="px-4 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl font-bold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors h-fit self-start"
-                            >
-                                + Adicionar
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <MediaInput
+                            label="Galeria (fotos ou embeds)"
+                            value={newGalleryItem}
+                            onChange={setNewGalleryItem}
+                            folder="events"
+                            allowEmbed
+                            helpText="Envie um arquivo, cole uma URL, ou cole um embed do Instagram. Depois clique em adicionar."
+                        />
+                        <button
+                            type="button"
+                            onClick={() => addItem('gallery', newGalleryItem, setNewGalleryItem)}
+                            className="mt-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl font-bold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors"
+                        >
+                            + Adicionar à galeria
+                        </button>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                             {formData.gallery.map((img, i) => (
                                 <div key={i} className="relative group w-full h-20 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center p-1">
                                     {isHtmlEmbed(img) ? (
@@ -549,7 +547,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSuccess, onCancel }) => 
                                             <span className="text-[9px] text-neutral-400 font-mono truncate w-24">{img.trim().substring(0, 20)}...</span>
                                         </div>
                                     ) : (
-                                        <img src={img} alt="Gallery item" className="w-full h-full object-cover rounded" />
+                                        <img src={peekPendingPreview(img) || img} alt="Gallery item" className="w-full h-full object-cover rounded" />
                                     )}
                                     <button 
                                         type="button" 

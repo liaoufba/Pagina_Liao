@@ -1,10 +1,11 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+import { applyActiveDatabaseUrl } from "./src/config/db-url";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env("DATABASE_URL"),
+    url: applyActiveDatabaseUrl(),
   },
   migrations: {
     seed: "ts-node prisma/seed.ts",

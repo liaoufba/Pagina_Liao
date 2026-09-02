@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 /**
  * @openapi
@@ -112,10 +113,20 @@ export const getProjects = async (req: Request, res: Response): Promise<void> =>
 export const deleteProject = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+        const previous = await prisma.project.findUnique({
+            where: { id: Number(id) },
+            select: { images: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Project not found' });
+            return;
+        }
+
         await prisma.project.delete({
             where: { id: Number(id) },
         });
         res.json({ success: true, message: 'Project deleted successfully' });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'projects', resourceId: Number(id) });
 
     } catch (error) {
@@ -155,6 +166,15 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        const previous = await prisma.project.findUnique({
+            where: { id: Number(id) },
+            select: { images: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Project not found' });
+            return;
+        }
+
         const project = await prisma.project.update({
             where: { id: Number(id) },
             data: {
@@ -166,6 +186,7 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
         });
 
         res.json({ success: true, data: project });
+        await cleanupReplacedMedia(previous, project);
         logAudit(req, { action: 'UPDATE', resource: 'projects', resourceId: project.id, details: { title: project.title } });
 
     } catch (error) {

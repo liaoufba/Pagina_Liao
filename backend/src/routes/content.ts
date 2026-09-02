@@ -20,3 +20,4 @@ router.put('/:id', authenticate, updateContent);
 router.delete('/:id', authenticate, deleteContent);
 
 export default router;
+ 

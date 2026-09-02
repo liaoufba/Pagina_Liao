@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 // Get all tutors
 /**
@@ -212,6 +213,18 @@ export const updateTutor = async (
         const { id } = req.params;
         const { name, email, photo, subjects, bio, availability } = req.body;
 
+        const previous = await prisma.tutor.findUnique({
+            where: { id: parseInt(id) },
+            select: { photo: true },
+        });
+        if (!previous) {
+            res.status(404).json({
+                success: false,
+                error: 'Tutor not found',
+            });
+            return;
+        }
+
         const tutor = await prisma.tutor.update({
             where: { id: parseInt(id) },
             data: {
@@ -229,6 +242,7 @@ export const updateTutor = async (
             data: { tutor },
             message: 'Tutor updated successfully',
         });
+        await cleanupReplacedMedia(previous, tutor);
         logAudit(req, { action: 'UPDATE', resource: 'tutors', resourceId: tutor.id, details: { name: tutor.name } });
     } catch (error: any) {
         console.error('Update tutor error:', error);
@@ -276,6 +290,17 @@ export const deleteTutor = async (
 ): Promise<void> => {
     try {
         const { id } = req.params;
+        const previous = await prisma.tutor.findUnique({
+            where: { id: parseInt(id) },
+            select: { photo: true },
+        });
+        if (!previous) {
+            res.status(404).json({
+                success: false,
+                error: 'Tutor not found',
+            });
+            return;
+        }
 
         await prisma.tutor.delete({
             where: { id: parseInt(id) },
@@ -285,6 +310,7 @@ export const deleteTutor = async (
             success: true,
             message: 'Tutor deleted successfully',
         });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'tutors', resourceId: parseInt(id) });
     } catch (error: any) {
         console.error('Delete tutor error:', error);

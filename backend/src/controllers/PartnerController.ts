@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { logAudit } from '../middleware/auditLogger';
+import { cleanupReplacedMedia } from '../services/cloudinaryMedia';
 
 // Get all partners
 /**
@@ -147,6 +148,15 @@ export const updatePartner = async (req: Request, res: Response) => {
             return;
         }
 
+        const previous = await prisma.partner.findUnique({
+            where: { id: parseInt(id) },
+            select: { imageUrl: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Parceiro não encontrado' });
+            return;
+        }
+
         const partner = await prisma.partner.update({
             where: {
                 id: parseInt(id),
@@ -168,6 +178,7 @@ export const updatePartner = async (req: Request, res: Response) => {
             success: true,
             data: partner,
         });
+        await cleanupReplacedMedia(previous, partner);
         logAudit(req, { action: 'UPDATE', resource: 'partners', resourceId: partner.id, details: { name: partner.name } });
 
     } catch (error: any) {
@@ -209,6 +220,16 @@ export const updatePartner = async (req: Request, res: Response) => {
 export const deletePartner = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const previous = await prisma.partner.findUnique({
+            where: {
+                id: parseInt(id),
+            },
+            select: { imageUrl: true },
+        });
+        if (!previous) {
+            res.status(404).json({ success: false, error: 'Parceiro não encontrado' });
+            return;
+        }
 
         await prisma.partner.delete({
             where: {
@@ -220,6 +241,7 @@ export const deletePartner = async (req: Request, res: Response) => {
             success: true,
             message: 'Partner deleted successfully',
         });
+        await cleanupReplacedMedia(previous, null);
         logAudit(req, { action: 'DELETE', resource: 'partners', resourceId: parseInt(id) });
 
     } catch (error: any) {
